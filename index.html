@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Quay video + Overlay text (Không record chữ)</title>
+  <title>Quay video + Overlay text (Không record chữ) - MP4</title>
+  <!-- Sử dụng ffmpeg.wasm nhẹ để chuyển webm sang mp4 -->
+  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/ffmpeg.min.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -23,7 +25,7 @@
     }
 
     .app {
-      max-width: 1200px;
+      max-width: 1400px;
       width: 100%;
       background: #151a22;
       border-radius: 32px;
@@ -43,7 +45,7 @@
       color: #d0d9e8;
     }
 
-    /* --- Video Container --- */
+    /* --- Video Container với tỉ lệ động --- */
     .video-wrapper {
       position: relative;
       width: 100%;
@@ -51,8 +53,8 @@
       overflow: hidden;
       background: #000;
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 10px 25px -5px #00000080;
-      aspect-ratio: 16 / 9;
       margin-bottom: 16px;
+      transition: aspect-ratio 0.2s;
     }
 
     #videoPreview {
@@ -70,10 +72,9 @@
       left: 0;
       width: 100%;
       height: 100%;
-      pointer-events: none;   /* Cho phép tương tác qua các control bên dưới? Nhưng text bản thân cần drag nên sẽ dùng một wrapper nhỏ */
+      pointer-events: none;
     }
 
-    /* Drag container — nằm trong overlay-layer nhưng cho phép pointer-events */
     .draggable-text {
       position: absolute;
       top: 50%;
@@ -101,7 +102,7 @@
       font-weight: 700;
       line-height: 1.3;
       text-align: center;
-      backdrop-filter: blur(0px);  /* Có thể bật semi-transparent nếu muốn, nhưng chữ thường đã semi-transparent qua color */
+      backdrop-filter: blur(0px);
       background-color: transparent;
       display: block;
     }
@@ -151,6 +152,11 @@
       border-color: #f87171;
     }
 
+    .btn-success {
+      background: #10b981;
+      border-color: #6ee7b7;
+    }
+
     .btn-outline {
       background: transparent;
       border: 1px solid #5f6c7c;
@@ -173,6 +179,33 @@
       color: #a5d8ff;
       font-weight: 600;
       letter-spacing: 1px;
+    }
+
+    /* Aspect ratio selector */
+    .aspect-selector {
+      display: flex;
+      gap: 8px;
+      background: #0f151c;
+      padding: 6px;
+      border-radius: 40px;
+      border: 1px solid #3e4a58;
+    }
+
+    .aspect-btn {
+      background: transparent;
+      border: none;
+      color: #9ab3d0;
+      padding: 6px 14px;
+      border-radius: 30px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.15s;
+      font-size: 0.9rem;
+    }
+
+    .aspect-btn.active {
+      background: #3b82f6;
+      color: white;
     }
 
     /* Text settings */
@@ -244,6 +277,25 @@
       padding: 2px;
     }
 
+    /* Filename input */
+    .filename-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    #filenameInput {
+      background: #0e141c;
+      border: 1px solid #3c4a5a;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 40px;
+      font-size: 0.95rem;
+      flex: 1;
+      outline: none;
+    }
+
     .toggle-overlay {
       margin-left: auto;
     }
@@ -256,6 +308,23 @@
       margin-top: 6px;
     }
 
+    /* Progress bar cho chuyển đổi MP4 */
+    .conversion-progress {
+      margin-top: 10px;
+      height: 4px;
+      background: #2a3645;
+      border-radius: 4px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: #3b82f6;
+      width: 0%;
+      transition: width 0.3s;
+    }
+
     /* Mobile */
     @media (max-width: 640px) {
       body { padding: 8px; }
@@ -265,6 +334,7 @@
       .timer { padding: 6px 12px; }
       .overlay-toolbar { flex-direction: column; align-items: stretch; }
       .toggle-overlay { margin-left: 0; }
+      .aspect-selector { flex-wrap: wrap; }
     }
 
     .badge {
@@ -275,7 +345,6 @@
       color: #bdd3ff;
     }
 
-    /* draggable khi ẩn */
     .hidden-overlay .draggable-text {
       display: none !important;
     }
@@ -284,15 +353,15 @@
 <body>
 <div class="app">
   <h2>
-    <span>🎬 Video Booth</span>
-    <span class="badge">Overlay không ghi vào video</span>
+    <span>🎬 Video Booth Pro</span>
+    <span class="badge">MP4 + Tỉ lệ tùy chọn</span>
   </h2>
 
   <!-- Video preview area -->
-  <div class="video-wrapper" id="videoWrapper">
+  <div class="video-wrapper" id="videoWrapper" style="aspect-ratio: 16/9">
     <video id="videoPreview" autoplay playsinline muted></video>
 
-    <!-- Overlay text layer (chỉ hiển thị, không record) -->
+    <!-- Overlay text layer -->
     <div class="overlay-layer" id="overlayLayer">
       <div class="draggable-text" id="draggableTextContainer">
         <div id="overlayTextDisplay">✨ Nhập text</div>
@@ -300,12 +369,35 @@
     </div>
   </div>
 
+  <!-- Aspect ratio selector -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+    <div class="aspect-selector">
+      <button class="aspect-btn active" data-aspect="16/9">📺 16:9</button>
+      <button class="aspect-btn" data-aspect="9/16">📱 9:16</button>
+      <button class="aspect-btn" data-aspect="1/1">⬛ 1:1</button>
+      <button class="aspect-btn" data-aspect="3/4">📐 3:4</button>
+      <button class="aspect-btn" data-aspect="full">🖥️ Full</button>
+    </div>
+  </div>
+
   <!-- Recording controls -->
   <div class="control-panel">
     <button class="btn btn-primary" id="startBtn">⏺ Bắt đầu quay</button>
     <button class="btn btn-danger" id="stopBtn" disabled>⏹ Dừng quay</button>
-    <button class="btn btn-outline" id="downloadBtn" disabled>⬇ Tải video</button>
+    <button class="btn btn-success" id="downloadBtn" disabled>⬇ Tải MP4</button>
     <div class="timer" id="timerDisplay">00:00</div>
+  </div>
+
+  <!-- Filename input -->
+  <div class="filename-section">
+    <label style="color: #b9c7dc;">📝 Tên file:</label>
+    <input type="text" id="filenameInput" placeholder="video_cua_toi" value="video_overlay">
+    <span style="color: #6b7f94;">.mp4</span>
+  </div>
+
+  <!-- Conversion progress -->
+  <div class="conversion-progress" id="conversionProgress">
+    <div class="progress-bar" id="progressBar"></div>
   </div>
 
   <!-- Overlay customization -->
@@ -327,8 +419,8 @@
     <button class="btn btn-outline toggle-overlay" id="toggleOverlayBtn">👁 Ẩn overlay</button>
   </div>
   <div class="footer-note">
-    <span>🖱️ Kéo thả text để di chuyển — Overlay <strong>không</strong> có trong video tải về</span>
-    <span>⚡ Video sạch, chỉ có camera</span>
+    <span>🖱️ Kéo thả text • Tỉ lệ khung • MP4 sạch không chữ</span>
+    <span>⚡ Chuyển đổi MP4 tự động</span>
   </div>
 </div>
 
@@ -336,15 +428,27 @@
   (function(){
     "use strict";
 
+    // --- Khởi tạo FFmpeg ---
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ 
+      log: false,
+      progress: ({ ratio }) => {
+        const progressBar = document.getElementById('progressBar');
+        progressBar.style.width = (ratio * 100) + '%';
+      }
+    });
+
     // --- DOM elements ---
     const videoPreview = document.getElementById('videoPreview');
+    const videoWrapper = document.getElementById('videoWrapper');
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const downloadBtn = document.getElementById('downloadBtn');
     const timerDisplay = document.getElementById('timerDisplay');
+    const filenameInput = document.getElementById('filenameInput');
+    const conversionProgress = document.getElementById('conversionProgress');
 
     // Overlay elements
-    const overlayLayer = document.getElementById('overlayLayer');
     const draggableContainer = document.getElementById('draggableTextContainer');
     const overlayTextDisplay = document.getElementById('overlayTextDisplay');
     const overlayInput = document.getElementById('overlayInput');
@@ -352,7 +456,9 @@
     const fontSizeValue = document.getElementById('fontSizeValue');
     const colorPicker = document.getElementById('colorPicker');
     const toggleOverlayBtn = document.getElementById('toggleOverlayBtn');
-    const videoWrapper = document.getElementById('videoWrapper');
+
+    // Aspect ratio buttons
+    const aspectBtns = document.querySelectorAll('.aspect-btn');
 
     // --- State ---
     let mediaStream = null;
@@ -361,30 +467,34 @@
     let recordingStartTime = null;
     let timerInterval = null;
     let isRecording = false;
-
-    // Overlay visibility state
     let overlayVisible = true;
-    // Drag state
     let isDragging = false;
     let dragOffsetX = 0, dragOffsetY = 0;
-    let containerRect = null;
+    let currentAspectRatio = '16/9';
+    let webmBlob = null; // Lưu blob webm gốc
 
-    // Lưu vị trí vào localStorage (bonus)
-    const STORAGE_KEY = 'videoOverlay_position';
+    // FFmpeg ready state
+    let ffmpegLoaded = false;
 
-    // --- Helper: format time MM:SS ---
+    // --- Khởi tạo FFmpeg ---
+    async function loadFFmpeg() {
+      if (!ffmpegLoaded) {
+        conversionProgress.style.display = 'block';
+        await ffmpeg.load();
+        ffmpegLoaded = true;
+        conversionProgress.style.display = 'none';
+      }
+    }
+
+    // --- Helper: format time ---
     function formatTime(seconds) {
       const mins = Math.floor(seconds / 60);
       const secs = Math.floor(seconds % 60);
       return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
 
-    // --- Update timer display ---
     function updateTimer() {
-      if (!recordingStartTime) {
-        timerDisplay.textContent = '00:00';
-        return;
-      }
+      if (!recordingStartTime) return;
       const elapsed = (Date.now() - recordingStartTime) / 1000;
       timerDisplay.textContent = formatTime(elapsed);
     }
@@ -396,36 +506,75 @@
     }
 
     function stopTimer() {
-      if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
-      }
+      if (timerInterval) clearInterval(timerInterval);
       recordingStartTime = null;
       timerDisplay.textContent = '00:00';
     }
 
-    // --- Camera access ---
+    // --- Camera access với tỉ lệ phù hợp ---
     async function initCamera() {
       try {
-        mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-          audio: true
-        });
+        // Dừng track cũ nếu có
+        if (mediaStream) {
+          mediaStream.getTracks().forEach(t => t.stop());
+        }
+
+        let constraints = { audio: true, video: {} };
+        
+        // Áp dụng tỉ lệ cho camera nếu có thể
+        if (currentAspectRatio !== 'full') {
+          const [w, h] = currentAspectRatio.split('/').map(Number);
+          constraints.video = {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            aspectRatio: { ideal: w / h }
+          };
+        } else {
+          constraints.video = {
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          };
+        }
+
+        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
         videoPreview.srcObject = mediaStream;
         videoPreview.play();
+
+        // Cập nhật object-fit dựa trên tỉ lệ
+        if (currentAspectRatio === 'full') {
+          videoPreview.style.objectFit = 'cover';
+        } else {
+          videoPreview.style.objectFit = 'cover';
+        }
       } catch (err) {
         alert('Không thể truy cập camera/mic: ' + err.message);
-        console.error(err);
       }
     }
 
-    // --- Stop camera tracks ---
-    function stopCamera() {
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-        mediaStream = null;
-        videoPreview.srcObject = null;
+    // --- Thay đổi tỉ lệ khung ---
+    function setAspectRatio(ratio) {
+      currentAspectRatio = ratio;
+      
+      // Cập nhật active button
+      aspectBtns.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.aspect === ratio) {
+          btn.classList.add('active');
+        }
+      });
+
+      // Cập nhật CSS aspect-ratio
+      if (ratio === 'full') {
+        videoWrapper.style.aspectRatio = 'auto';
+        videoWrapper.style.height = '500px';
+      } else {
+        videoWrapper.style.height = 'auto';
+        const [w, h] = ratio.split('/').map(Number);
+        videoWrapper.style.aspectRatio = `${w}/${h}`;
       }
+
+      // Khởi tạo lại camera với tỉ lệ mới
+      initCamera();
     }
 
     // --- Recording ---
@@ -437,10 +586,9 @@
 
       recordedChunks = [];
       try {
-        // Sử dụng codec ưu tiên
         const options = { mimeType: 'video/webm;codecs=vp8,opus' };
         if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-          options.mimeType = 'video/webm'; // fallback
+          options.mimeType = 'video/webm';
         }
         mediaRecorder = new MediaRecorder(mediaStream, options);
       } catch (e) {
@@ -453,18 +601,9 @@
         }
       };
 
-      mediaRecorder.onstop = () => {
-        // Tạo blob và link download
-        const blob = new Blob(recordedChunks, { type: 'video/webm' });
-        const url = URL.createObjectURL(blob);
+      mediaRecorder.onstop = async () => {
+        webmBlob = new Blob(recordedChunks, { type: 'video/webm' });
         downloadBtn.disabled = false;
-        downloadBtn.onclick = () => {
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `video_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.webm`;
-          a.click();
-        };
-        // Cleanup trạng thái
         isRecording = false;
         startBtn.disabled = false;
         stopBtn.disabled = true;
@@ -485,29 +624,93 @@
       }
     }
 
+    // --- Chuyển đổi WebM sang MP4 và tải xuống ---
+    async function downloadAsMP4() {
+      if (!webmBlob) {
+        alert('Chưa có video để tải');
+        return;
+      }
+
+      const filename = filenameInput.value.trim() || 'video';
+      const finalFilename = `${filename}.mp4`;
+
+      try {
+        downloadBtn.disabled = true;
+        downloadBtn.textContent = '⏳ Đang chuyển MP4...';
+        conversionProgress.style.display = 'block';
+        document.getElementById('progressBar').style.width = '0%';
+
+        await loadFFmpeg();
+
+        // Ghi file webm vào FFmpeg
+        ffmpeg.FS('writeFile', 'input.webm', await fetchFile(webmBlob));
+
+        // Chạy lệnh chuyển đổi
+        await ffmpeg.run(
+          '-i', 'input.webm',
+          '-c:v', 'libx264',
+          '-preset', 'fast',
+          '-crf', '23',
+          '-c:a', 'aac',
+          '-b:a', '128k',
+          '-movflags', '+faststart',
+          'output.mp4'
+        );
+
+        // Đọc file output
+        const data = ffmpeg.FS('readFile', 'output.mp4');
+        const mp4Blob = new Blob([data.buffer], { type: 'video/mp4' });
+
+        // Tạo link download
+        const url = URL.createObjectURL(mp4Blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = finalFilename;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        // Dọn dẹp
+        ffmpeg.FS('unlink', 'input.webm');
+        ffmpeg.FS('unlink', 'output.mp4');
+
+      } catch (error) {
+        console.error('Lỗi chuyển đổi:', error);
+        alert('Lỗi khi chuyển đổi MP4. Đang tải WebM thay thế...');
+        
+        // Fallback: tải webm
+        const url = URL.createObjectURL(webmBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filename}.webm`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } finally {
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = '⬇ Tải MP4';
+        conversionProgress.style.display = 'none';
+      }
+    }
+
     // --- Overlay text sync ---
     function updateOverlayStyle() {
       overlayTextDisplay.textContent = overlayInput.value || ' ';
       overlayTextDisplay.style.fontSize = fontSizeSlider.value + 'px';
       overlayTextDisplay.style.color = colorPicker.value;
       fontSizeValue.textContent = fontSizeSlider.value + 'px';
-
-      // Cho phép semi-transparent: có thể thêm opacity, nhưng dùng màu RGBA nếu muốn, nhưng để đơn giản thì dùng opacity nhẹ toàn bộ hoặc để nguyên. 
-      // Ta thêm opacity nhẹ vào draggable container?
-      draggableContainer.style.opacity = '0.92'; // semi-transparent nhẹ, vẫn rõ
+      draggableContainer.style.opacity = '0.92';
     }
 
-    // --- Drag & Drop logic (kéo thả text) ---
+    // --- Drag & Drop ---
+    const STORAGE_KEY = 'videoOverlay_position_v2';
+    
     function setInitialPositionFromStorage() {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         try {
           const { left, top } = JSON.parse(saved);
-          if (left !== undefined && top !== undefined) {
-            draggableContainer.style.left = left + 'px';
-            draggableContainer.style.top = top + 'px';
-            draggableContainer.style.transform = 'none'; // bỏ translate mặc định
-          }
+          draggableContainer.style.left = left + 'px';
+          draggableContainer.style.top = top + 'px';
+          draggableContainer.style.transform = 'none';
         } catch (e) {}
       }
     }
@@ -518,9 +721,7 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ left, top }));
     }
 
-    // Drag start
     function onDragStart(e) {
-      // Chỉ cho kéo khi không quay? Không sao, cho phép cả lúc quay
       e.preventDefault();
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -528,21 +729,18 @@
       const rect = draggableContainer.getBoundingClientRect();
       const wrapperRect = videoWrapper.getBoundingClientRect();
 
-      // Tính offset giữa chuột và góc trái của element
       dragOffsetX = clientX - rect.left;
       dragOffsetY = clientY - rect.top;
 
-      // Lưu lại vị trí hiện tại dạng pixel tuyệt đối so với wrapper (để áp dụng left/top)
       const currentLeft = rect.left - wrapperRect.left;
       const currentTop = rect.top - wrapperRect.top;
 
       draggableContainer.style.left = currentLeft + 'px';
       draggableContainer.style.top = currentTop + 'px';
-      draggableContainer.style.transform = 'none'; // bỏ translate
+      draggableContainer.style.transform = 'none';
 
       isDragging = true;
       draggableContainer.style.cursor = 'grabbing';
-      containerRect = wrapperRect;
 
       window.addEventListener('mousemove', onDragMove);
       window.addEventListener('touchmove', onDragMove, { passive: false });
@@ -556,15 +754,13 @@
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-      if (!containerRect) return;
+      const wrapperRect = videoWrapper.getBoundingClientRect();
+      let newLeft = clientX - dragOffsetX - wrapperRect.left;
+      let newTop = clientY - dragOffsetY - wrapperRect.top;
 
-      let newLeft = clientX - dragOffsetX - containerRect.left;
-      let newTop = clientY - dragOffsetY - containerRect.top;
-
-      // Giới hạn trong video wrapper
       const elemRect = draggableContainer.getBoundingClientRect();
-      const maxLeft = containerRect.width - elemRect.width;
-      const maxTop = containerRect.height - elemRect.height;
+      const maxLeft = wrapperRect.width - elemRect.width;
+      const maxTop = wrapperRect.height - elemRect.height;
 
       newLeft = Math.max(0, Math.min(newLeft, maxLeft));
       newTop = Math.max(0, Math.min(newTop, maxTop));
@@ -586,7 +782,6 @@
       }
     }
 
-    // --- Toggle overlay visibility ---
     function toggleOverlay() {
       overlayVisible = !overlayVisible;
       if (overlayVisible) {
@@ -598,63 +793,37 @@
       }
     }
 
-    // --- Setup listeners & init ---
+    // --- Khởi tạo ---
     function init() {
       initCamera();
-
-      // Default style
       updateOverlayStyle();
       setInitialPositionFromStorage();
 
       // Event listeners
       startBtn.addEventListener('click', startRecording);
       stopBtn.addEventListener('click', stopRecording);
+      downloadBtn.addEventListener('click', downloadAsMP4);
 
       overlayInput.addEventListener('input', updateOverlayStyle);
       fontSizeSlider.addEventListener('input', updateOverlayStyle);
       colorPicker.addEventListener('input', updateOverlayStyle);
-
       toggleOverlayBtn.addEventListener('click', toggleOverlay);
+
+      // Aspect ratio
+      aspectBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          setAspectRatio(btn.dataset.aspect);
+        });
+      });
 
       // Drag events
       draggableContainer.addEventListener('mousedown', onDragStart);
       draggableContainer.addEventListener('touchstart', onDragStart, { passive: false });
-
-      // Prevent default drag behavior on image/div
       draggableContainer.addEventListener('dragstart', (e) => e.preventDefault());
 
-      // Xử lý khi window resize: vẫn giữ vị trí tương đối
-      window.addEventListener('resize', () => {
-        // Không cần làm gì, left/top giữ nguyên theo pixel -> có thể ra ngoài? 
-        // Để an toàn: nếu ra ngoài thì điều chỉnh nhẹ
-        if (!isDragging) {
-          const wrapperRect = videoWrapper.getBoundingClientRect();
-          const left = parseFloat(draggableContainer.style.left) || 0;
-          const top = parseFloat(draggableContainer.style.top) || 0;
-          const elemRect = draggableContainer.getBoundingClientRect();
-          const maxLeft = wrapperRect.width - elemRect.width;
-          const maxTop = wrapperRect.height - elemRect.height;
-          if (left > maxLeft) draggableContainer.style.left = Math.max(0, maxLeft) + 'px';
-          if (top > maxTop) draggableContainer.style.top = Math.max(0, maxTop) + 'px';
-        }
-      });
-
-      // Khi stop stream (nếu người dùng tắt tab, nhưng ta không cần)
-      window.addEventListener('beforeunload', () => {
-        if (mediaStream) {
-          mediaStream.getTracks().forEach(t => t.stop());
-        }
-      });
+      // Tự động tải FFmpeg khi trang load (không bắt buộc)
+      loadFFmpeg().catch(console.warn);
     }
-
-    // Clean up
-    window.addEventListener('beforeunload', () => {
-      if (timerInterval) clearInterval(timerInterval);
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
-        mediaRecorder.stop();
-      }
-      stopCamera();
-    });
 
     init();
   })();
