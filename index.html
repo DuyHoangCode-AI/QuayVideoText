@@ -51,7 +51,7 @@
       width: 100%;
       border-radius: 24px;
       overflow: hidden;
-      background: #000;
+      background: #0a0e14;
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 10px 25px -5px #00000080;
       margin-bottom: 16px;
       transition: aspect-ratio 0.2s;
@@ -63,6 +63,32 @@
       object-fit: cover;
       display: block;
       background: #0a0c10;
+    }
+
+    /* Placeholder khi chưa có camera */
+    .camera-placeholder {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a2330 0%, #0f151c 100%);
+      color: #8ba0bc;
+      pointer-events: none;
+    }
+
+    .camera-placeholder.hidden {
+      display: none;
+    }
+
+    .camera-placeholder-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      opacity: 0.6;
     }
 
     /* Overlay layer — KHÔNG record */
@@ -325,6 +351,31 @@
       transition: width 0.3s;
     }
 
+    /* Status indicator */
+    .camera-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 12px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+    }
+
+    .status-dot.active {
+      background: #10b981;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
     /* Mobile */
     @media (max-width: 640px) {
       body { padding: 8px; }
@@ -355,11 +406,22 @@
   <h2>
     <span>🎬 Video Booth Pro</span>
     <span class="badge">MP4 + Tỉ lệ tùy chọn</span>
+    <div class="camera-status">
+      <span class="status-dot" id="cameraStatusDot"></span>
+      <span style="font-size: 0.85rem; color: #9ab3d0;" id="cameraStatusText">Chưa kết nối</span>
+    </div>
   </h2>
 
   <!-- Video preview area -->
   <div class="video-wrapper" id="videoWrapper" style="aspect-ratio: 16/9">
     <video id="videoPreview" autoplay playsinline muted></video>
+    
+    <!-- Placeholder khi chưa có camera -->
+    <div class="camera-placeholder" id="cameraPlaceholder">
+      <div class="camera-placeholder-icon">📷</div>
+      <div style="font-size: 1.2rem; margin-bottom: 8px;">Camera chưa được kích hoạt</div>
+      <div style="font-size: 0.9rem;">Nhấn "Bắt đầu quay" để cấp quyền camera</div>
+    </div>
 
     <!-- Overlay text layer -->
     <div class="overlay-layer" id="overlayLayer">
@@ -420,7 +482,7 @@
   </div>
   <div class="footer-note">
     <span>🖱️ Kéo thả text • Tỉ lệ khung • MP4 sạch không chữ</span>
-    <span>⚡ Chuyển đổi MP4 tự động</span>
+    <span>⚡ Nhấn Start để bật camera</span>
   </div>
 </div>
 
@@ -441,6 +503,9 @@
     // --- DOM elements ---
     const videoPreview = document.getElementById('videoPreview');
     const videoWrapper = document.getElementById('videoWrapper');
+    const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+    const cameraStatusDot = document.getElementById('cameraStatusDot');
+    const cameraStatusText = document.getElementById('cameraStatusText');
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const downloadBtn = document.getElementById('downloadBtn');
@@ -471,10 +536,23 @@
     let isDragging = false;
     let dragOffsetX = 0, dragOffsetY = 0;
     let currentAspectRatio = '16/9';
-    let webmBlob = null; // Lưu blob webm gốc
-
-    // FFmpeg ready state
+    let webmBlob = null;
     let ffmpegLoaded = false;
+    let cameraActive = false;
+
+    // --- Helper functions ---
+    function updateCameraStatus(active) {
+      cameraActive = active;
+      if (active) {
+        cameraStatusDot.classList.add('active');
+        cameraStatusText.textContent = 'Camera đang hoạt động';
+        cameraPlaceholder.classList.add('hidden');
+      } else {
+        cameraStatusDot.classList.remove('active');
+        cameraStatusText.textContent = 'Chưa kết nối';
+        cameraPlaceholder.classList.remove('hidden');
+      }
+    }
 
     // --- Khởi tạo FFmpeg ---
     async function loadFFmpeg() {
@@ -511,17 +589,20 @@
       timerDisplay.textContent = '00:00';
     }
 
-    // --- Camera access với tỉ lệ phù hợp ---
-    async function initCamera() {
+    // --- Camera access - CHỈ GỌI KHI NHẤN START ---
+    async function requestCamera() {
       try {
         // Dừng track cũ nếu có
         if (mediaStream) {
           mediaStream.getTracks().forEach(t => t.stop());
         }
 
-        let constraints = { audio: true, video: {} };
+        let constraints = { 
+          audio: true, 
+          video: {} 
+        };
         
-        // Áp dụng tỉ lệ cho camera nếu có thể
+        // Áp dụng tỉ lệ cho camera
         if (currentAspectRatio !== 'full') {
           const [w, h] = currentAspectRatio.split('/').map(Number);
           constraints.video = {
@@ -538,16 +619,21 @@
 
         mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
         videoPreview.srcObject = mediaStream;
-        videoPreview.play();
-
-        // Cập nhật object-fit dựa trên tỉ lệ
-        if (currentAspectRatio === 'full') {
-          videoPreview.style.objectFit = 'cover';
-        } else {
-          videoPreview.style.objectFit = 'cover';
-        }
+        await videoPreview.play();
+        
+        updateCameraStatus(true);
+        return true;
       } catch (err) {
-        alert('Không thể truy cập camera/mic: ' + err.message);
+        console.error('Lỗi camera:', err);
+        let errorMessage = 'Không thể truy cập camera/microphone.';
+        if (err.name === 'NotAllowedError') {
+          errorMessage = 'Bạn đã từ chối quyền truy cập camera/microphone. Vui lòng cấp quyền trong trình duyệt.';
+        } else if (err.name === 'NotFoundError') {
+          errorMessage = 'Không tìm thấy camera/microphone trên thiết bị.';
+        }
+        alert(errorMessage);
+        updateCameraStatus(false);
+        return false;
       }
     }
 
@@ -573,14 +659,32 @@
         videoWrapper.style.aspectRatio = `${w}/${h}`;
       }
 
-      // Khởi tạo lại camera với tỉ lệ mới
-      initCamera();
+      // Nếu camera đang active, cập nhật lại stream với tỉ lệ mới
+      if (cameraActive) {
+        requestCamera();
+      }
     }
 
-    // --- Recording ---
-    function startRecording() {
+    // --- Bắt đầu quay (bao gồm request camera nếu chưa có) ---
+    async function handleStartRecording() {
+      // Nếu chưa có camera, request trước
+      if (!cameraActive) {
+        startBtn.textContent = '📷 Đang kết nối...';
+        startBtn.disabled = true;
+        
+        const success = await requestCamera();
+        
+        startBtn.textContent = '⏺ Bắt đầu quay';
+        startBtn.disabled = false;
+        
+        if (!success) {
+          return; // Không thành công thì dừng
+        }
+      }
+
+      // Bắt đầu quay
       if (!mediaStream) {
-        alert('Camera chưa sẵn sàng');
+        alert('Không có luồng camera để quay');
         return;
       }
 
@@ -642,10 +746,8 @@
 
         await loadFFmpeg();
 
-        // Ghi file webm vào FFmpeg
         ffmpeg.FS('writeFile', 'input.webm', await fetchFile(webmBlob));
 
-        // Chạy lệnh chuyển đổi
         await ffmpeg.run(
           '-i', 'input.webm',
           '-c:v', 'libx264',
@@ -657,11 +759,9 @@
           'output.mp4'
         );
 
-        // Đọc file output
         const data = ffmpeg.FS('readFile', 'output.mp4');
         const mp4Blob = new Blob([data.buffer], { type: 'video/mp4' });
 
-        // Tạo link download
         const url = URL.createObjectURL(mp4Blob);
         const a = document.createElement('a');
         a.href = url;
@@ -669,7 +769,6 @@
         a.click();
         URL.revokeObjectURL(url);
 
-        // Dọn dẹp
         ffmpeg.FS('unlink', 'input.webm');
         ffmpeg.FS('unlink', 'output.mp4');
 
@@ -677,7 +776,6 @@
         console.error('Lỗi chuyển đổi:', error);
         alert('Lỗi khi chuyển đổi MP4. Đang tải WebM thay thế...');
         
-        // Fallback: tải webm
         const url = URL.createObjectURL(webmBlob);
         const a = document.createElement('a');
         a.href = url;
@@ -793,14 +891,26 @@
       }
     }
 
+    // --- Dọn dẹp khi rời trang ---
+    function cleanup() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+      }
+      if (timerInterval) {
+        clearInterval(timerInterval);
+      }
+    }
+
     // --- Khởi tạo ---
     function init() {
-      initCamera();
+      // Không tự động request camera nữa
+      updateCameraStatus(false);
+      
       updateOverlayStyle();
       setInitialPositionFromStorage();
 
       // Event listeners
-      startBtn.addEventListener('click', startRecording);
+      startBtn.addEventListener('click', handleStartRecording);
       stopBtn.addEventListener('click', stopRecording);
       downloadBtn.addEventListener('click', downloadAsMP4);
 
@@ -821,8 +931,8 @@
       draggableContainer.addEventListener('touchstart', onDragStart, { passive: false });
       draggableContainer.addEventListener('dragstart', (e) => e.preventDefault());
 
-      // Tự động tải FFmpeg khi trang load (không bắt buộc)
-      loadFFmpeg().catch(console.warn);
+      // Cleanup khi rời trang
+      window.addEventListener('beforeunload', cleanup);
     }
 
     init();
