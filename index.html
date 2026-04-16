@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Quay video + Overlay text (Không record chữ)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      background: #0b0e14;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+      color: #eef2fb;
+    }
+
+    .app {
+      max-width: 1200px;
+      width: 100%;
+      background: #151a22;
+      border-radius: 32px;
+      box-shadow: 0 25px 40px -8px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+      padding: 20px;
+      border: 1px solid #2c3540;
+    }
+
+    h2 {
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      color: #d0d9e8;
+    }
+
+    /* --- Video Container --- */
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      border-radius: 24px;
+      overflow: hidden;
+      background: #000;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 10px 25px -5px #00000080;
+      aspect-ratio: 16 / 9;
+      margin-bottom: 16px;
+    }
+
+    #videoPreview {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      background: #0a0c10;
+    }
+
+    /* Overlay layer — KHÔNG record */
+    .overlay-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;   /* Cho phép tương tác qua các control bên dưới? Nhưng text bản thân cần drag nên sẽ dùng một wrapper nhỏ */
+    }
+
+    /* Drag container — nằm trong overlay-layer nhưng cho phép pointer-events */
+    .draggable-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: auto;
+      cursor: grab;
+      user-select: none;
+      background: transparent;
+      display: inline-block;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-width: 90%;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.7);
+      transition: box-shadow 0.1s;
+      border-radius: 8px;
+      padding: 4px 8px;
+    }
+
+    .draggable-text:active {
+      cursor: grabbing;
+    }
+
+    #overlayTextDisplay {
+      font-weight: 700;
+      line-height: 1.3;
+      text-align: center;
+      backdrop-filter: blur(0px);  /* Có thể bật semi-transparent nếu muốn, nhưng chữ thường đã semi-transparent qua color */
+      background-color: transparent;
+      display: block;
+    }
+
+    /* Controls */
+    .control-panel {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 16px;
+      align-items: center;
+      margin-bottom: 20px;
+      background: #1e252f;
+      padding: 16px 18px;
+      border-radius: 48px;
+      backdrop-filter: blur(4px);
+      border: 1px solid #353f4b;
+    }
+
+    .btn {
+      background: #2b3643;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 40px;
+      font-weight: 500;
+      font-size: 1rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      transition: all 0.15s;
+      border: 1px solid #45515e;
+      flex: 0 0 auto;
+    }
+
+    .btn-primary {
+      background: #3b82f6;
+      border-color: #8bb4fe;
+      color: white;
+      box-shadow: 0 6px 12px #1e3a8a40;
+    }
+
+    .btn-danger {
+      background: #b91c1c;
+      border-color: #f87171;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #5f6c7c;
+      box-shadow: none;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      pointer-events: none;
+      filter: grayscale(0.5);
+    }
+
+    .timer {
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace;
+      background: #0f151c;
+      padding: 6px 18px;
+      border-radius: 40px;
+      border: 1px solid #3e4a58;
+      color: #a5d8ff;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    /* Text settings */
+    .overlay-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px 24px;
+      background: #1a212a;
+      padding: 14px 20px;
+      border-radius: 30px;
+      margin-bottom: 10px;
+      border: 1px solid #2f3a46;
+    }
+
+    .text-input-area {
+      flex: 2 1 260px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    #overlayInput {
+      background: #0e141c;
+      border: 1px solid #3c4a5a;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 40px;
+      font-size: 1rem;
+      width: 100%;
+      outline: none;
+      transition: 0.2s;
+    }
+
+    #overlayInput:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px #1e3a8a60;
+    }
+
+    .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .slider-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #b9c7dc;
+    }
+
+    input[type="range"] {
+      width: 120px;
+      background: #2d3845;
+      height: 5px;
+      border-radius: 10px;
+      accent-color: #3b82f6;
+    }
+
+    input[type="color"] {
+      width: 42px;
+      height: 42px;
+      border: 2px solid #495a6e;
+      border-radius: 30px;
+      background: transparent;
+      cursor: pointer;
+      padding: 2px;
+    }
+
+    .toggle-overlay {
+      margin-left: auto;
+    }
+
+    .footer-note {
+      display: flex;
+      justify-content: space-between;
+      color: #8899b0;
+      font-size: 0.85rem;
+      margin-top: 6px;
+    }
+
+    /* Mobile */
+    @media (max-width: 640px) {
+      body { padding: 8px; }
+      .app { padding: 14px; border-radius: 24px; }
+      .control-panel { border-radius: 30px; padding: 14px; }
+      .btn { padding: 10px 16px; font-size: 0.9rem; }
+      .timer { padding: 6px 12px; }
+      .overlay-toolbar { flex-direction: column; align-items: stretch; }
+      .toggle-overlay { margin-left: 0; }
+    }
+
+    .badge {
+      background: #2e3b4b;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      color: #bdd3ff;
+    }
+
+    /* draggable khi ẩn */
+    .hidden-overlay .draggable-text {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <h2>
+    <span>🎬 Video Booth</span>
+    <span class="badge">Overlay không ghi vào video</span>
+  </h2>
+
+  <!-- Video preview area -->
+  <div class="video-wrapper" id="videoWrapper">
+    <video id="videoPreview" autoplay playsinline muted></video>
+
+    <!-- Overlay text layer (chỉ hiển thị, không record) -->
+    <div class="overlay-layer" id="overlayLayer">
+      <div class="draggable-text" id="draggableTextContainer">
+        <div id="overlayTextDisplay">✨ Nhập text</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recording controls -->
+  <div class="control-panel">
+    <button class="btn btn-primary" id="startBtn">⏺ Bắt đầu quay</button>
+    <button class="btn btn-danger" id="stopBtn" disabled>⏹ Dừng quay</button>
+    <button class="btn btn-outline" id="downloadBtn" disabled>⬇ Tải video</button>
+    <div class="timer" id="timerDisplay">00:00</div>
+  </div>
+
+  <!-- Overlay customization -->
+  <div class="overlay-toolbar">
+    <div class="text-input-area">
+      <input type="text" id="overlayInput" placeholder="Nhập text hiển thị..." value="Hello 🎥" maxlength="60">
+    </div>
+    <div class="slider-group">
+      <div class="slider-label">
+        <span>🔤 Size</span>
+        <input type="range" id="fontSizeSlider" min="16" max="120" value="48" step="1">
+        <span id="fontSizeValue">48px</span>
+      </div>
+      <div class="slider-label">
+        <span>🎨</span>
+        <input type="color" id="colorPicker" value="#ffffff">
+      </div>
+    </div>
+    <button class="btn btn-outline toggle-overlay" id="toggleOverlayBtn">👁 Ẩn overlay</button>
+  </div>
+  <div class="footer-note">
+    <span>🖱️ Kéo thả text để di chuyển — Overlay <strong>không</strong> có trong video tải về</span>
+    <span>⚡ Video sạch, chỉ có camera</span>
+  </div>
+</div>
+
+<script>
+  (function(){
+    "use strict";
+
+    // --- DOM elements ---
+    const videoPreview = document.getElementById('videoPreview');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const timerDisplay = document.getElementById('timerDisplay');
+
+    // Overlay elements
+    const overlayLayer = document.getElementById('overlayLayer');
+    const draggableContainer = document.getElementById('draggableTextContainer');
+    const overlayTextDisplay = document.getElementById('overlayTextDisplay');
+    const overlayInput = document.getElementById('overlayInput');
+    const fontSizeSlider = document.getElementById('fontSizeSlider');
+    const fontSizeValue = document.getElementById('fontSizeValue');
+    const colorPicker = document.getElementById('colorPicker');
+    const toggleOverlayBtn = document.getElementById('toggleOverlayBtn');
+    const videoWrapper = document.getElementById('videoWrapper');
+
+    // --- State ---
+    let mediaStream = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let recordingStartTime = null;
+    let timerInterval = null;
+    let isRecording = false;
+
+    // Overlay visibility state
+    let overlayVisible = true;
+    // Drag state
+    let isDragging = false;
+    let dragOffsetX = 0, dragOffsetY = 0;
+    let containerRect = null;
+
+    // Lưu vị trí vào localStorage (bonus)
+    const STORAGE_KEY = 'videoOverlay_position';
+
+    // --- Helper: format time MM:SS ---
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // --- Update timer display ---
+    function updateTimer() {
+      if (!recordingStartTime) {
+        timerDisplay.textContent = '00:00';
+        return;
+      }
+      const elapsed = (Date.now() - recordingStartTime) / 1000;
+      timerDisplay.textContent = formatTime(elapsed);
+    }
+
+    function startTimer() {
+      recordingStartTime = Date.now();
+      updateTimer();
+      timerInterval = setInterval(updateTimer, 200);
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      recordingStartTime = null;
+      timerDisplay.textContent = '00:00';
+    }
+
+    // --- Camera access ---
+    async function initCamera() {
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+          audio: true
+        });
+        videoPreview.srcObject = mediaStream;
+        videoPreview.play();
+      } catch (err) {
+        alert('Không thể truy cập camera/mic: ' + err.message);
+        console.error(err);
+      }
+    }
+
+    // --- Stop camera tracks ---
+    function stopCamera() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+        videoPreview.srcObject = null;
+      }
+    }
+
+    // --- Recording ---
+    function startRecording() {
+      if (!mediaStream) {
+        alert('Camera chưa sẵn sàng');
+        return;
+      }
+
+      recordedChunks = [];
+      try {
+        // Sử dụng codec ưu tiên
+        const options = { mimeType: 'video/webm;codecs=vp8,opus' };
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+          options.mimeType = 'video/webm'; // fallback
+        }
+        mediaRecorder = new MediaRecorder(mediaStream, options);
+      } catch (e) {
+        mediaRecorder = new MediaRecorder(mediaStream);
+      }
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          recordedChunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        // Tạo blob và link download
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        downloadBtn.disabled = false;
+        downloadBtn.onclick = () => {
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `video_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.webm`;
+          a.click();
+        };
+        // Cleanup trạng thái
+        isRecording = false;
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        stopTimer();
+      };
+
+      mediaRecorder.start();
+      isRecording = true;
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      downloadBtn.disabled = true;
+      startTimer();
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+    }
+
+    // --- Overlay text sync ---
+    function updateOverlayStyle() {
+      overlayTextDisplay.textContent = overlayInput.value || ' ';
+      overlayTextDisplay.style.fontSize = fontSizeSlider.value + 'px';
+      overlayTextDisplay.style.color = colorPicker.value;
+      fontSizeValue.textContent = fontSizeSlider.value + 'px';
+
+      // Cho phép semi-transparent: có thể thêm opacity, nhưng dùng màu RGBA nếu muốn, nhưng để đơn giản thì dùng opacity nhẹ toàn bộ hoặc để nguyên. 
+      // Ta thêm opacity nhẹ vào draggable container?
+      draggableContainer.style.opacity = '0.92'; // semi-transparent nhẹ, vẫn rõ
+    }
+
+    // --- Drag & Drop logic (kéo thả text) ---
+    function setInitialPositionFromStorage() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const { left, top } = JSON.parse(saved);
+          if (left !== undefined && top !== undefined) {
+            draggableContainer.style.left = left + 'px';
+            draggableContainer.style.top = top + 'px';
+            draggableContainer.style.transform = 'none'; // bỏ translate mặc định
+          }
+        } catch (e) {}
+      }
+    }
+
+    function savePositionToStorage() {
+      const left = parseFloat(draggableContainer.style.left) || 0;
+      const top = parseFloat(draggableContainer.style.top) || 0;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ left, top }));
+    }
+
+    // Drag start
+    function onDragStart(e) {
+      // Chỉ cho kéo khi không quay? Không sao, cho phép cả lúc quay
+      e.preventDefault();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      const rect = draggableContainer.getBoundingClientRect();
+      const wrapperRect = videoWrapper.getBoundingClientRect();
+
+      // Tính offset giữa chuột và góc trái của element
+      dragOffsetX = clientX - rect.left;
+      dragOffsetY = clientY - rect.top;
+
+      // Lưu lại vị trí hiện tại dạng pixel tuyệt đối so với wrapper (để áp dụng left/top)
+      const currentLeft = rect.left - wrapperRect.left;
+      const currentTop = rect.top - wrapperRect.top;
+
+      draggableContainer.style.left = currentLeft + 'px';
+      draggableContainer.style.top = currentTop + 'px';
+      draggableContainer.style.transform = 'none'; // bỏ translate
+
+      isDragging = true;
+      draggableContainer.style.cursor = 'grabbing';
+      containerRect = wrapperRect;
+
+      window.addEventListener('mousemove', onDragMove);
+      window.addEventListener('touchmove', onDragMove, { passive: false });
+      window.addEventListener('mouseup', onDragEnd);
+      window.addEventListener('touchend', onDragEnd);
+    }
+
+    function onDragMove(e) {
+      if (!isDragging) return;
+      e.preventDefault();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      if (!containerRect) return;
+
+      let newLeft = clientX - dragOffsetX - containerRect.left;
+      let newTop = clientY - dragOffsetY - containerRect.top;
+
+      // Giới hạn trong video wrapper
+      const elemRect = draggableContainer.getBoundingClientRect();
+      const maxLeft = containerRect.width - elemRect.width;
+      const maxTop = containerRect.height - elemRect.height;
+
+      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+      newTop = Math.max(0, Math.min(newTop, maxTop));
+
+      draggableContainer.style.left = newLeft + 'px';
+      draggableContainer.style.top = newTop + 'px';
+    }
+
+    function onDragEnd() {
+      if (isDragging) {
+        isDragging = false;
+        draggableContainer.style.cursor = 'grab';
+        savePositionToStorage();
+
+        window.removeEventListener('mousemove', onDragMove);
+        window.removeEventListener('touchmove', onDragMove);
+        window.removeEventListener('mouseup', onDragEnd);
+        window.removeEventListener('touchend', onDragEnd);
+      }
+    }
+
+    // --- Toggle overlay visibility ---
+    function toggleOverlay() {
+      overlayVisible = !overlayVisible;
+      if (overlayVisible) {
+        videoWrapper.classList.remove('hidden-overlay');
+        toggleOverlayBtn.innerHTML = '👁 Ẩn overlay';
+      } else {
+        videoWrapper.classList.add('hidden-overlay');
+        toggleOverlayBtn.innerHTML = '👁‍🗨 Hiện overlay';
+      }
+    }
+
+    // --- Setup listeners & init ---
+    function init() {
+      initCamera();
+
+      // Default style
+      updateOverlayStyle();
+      setInitialPositionFromStorage();
+
+      // Event listeners
+      startBtn.addEventListener('click', startRecording);
+      stopBtn.addEventListener('click', stopRecording);
+
+      overlayInput.addEventListener('input', updateOverlayStyle);
+      fontSizeSlider.addEventListener('input', updateOverlayStyle);
+      colorPicker.addEventListener('input', updateOverlayStyle);
+
+      toggleOverlayBtn.addEventListener('click', toggleOverlay);
+
+      // Drag events
+      draggableContainer.addEventListener('mousedown', onDragStart);
+      draggableContainer.addEventListener('touchstart', onDragStart, { passive: false });
+
+      // Prevent default drag behavior on image/div
+      draggableContainer.addEventListener('dragstart', (e) => e.preventDefault());
+
+      // Xử lý khi window resize: vẫn giữ vị trí tương đối
+      window.addEventListener('resize', () => {
+        // Không cần làm gì, left/top giữ nguyên theo pixel -> có thể ra ngoài? 
+        // Để an toàn: nếu ra ngoài thì điều chỉnh nhẹ
+        if (!isDragging) {
+          const wrapperRect = videoWrapper.getBoundingClientRect();
+          const left = parseFloat(draggableContainer.style.left) || 0;
+          const top = parseFloat(draggableContainer.style.top) || 0;
+          const elemRect = draggableContainer.getBoundingClientRect();
+          const maxLeft = wrapperRect.width - elemRect.width;
+          const maxTop = wrapperRect.height - elemRect.height;
+          if (left > maxLeft) draggableContainer.style.left = Math.max(0, maxLeft) + 'px';
+          if (top > maxTop) draggableContainer.style.top = Math.max(0, maxTop) + 'px';
+        }
+      });
+
+      // Khi stop stream (nếu người dùng tắt tab, nhưng ta không cần)
+      window.addEventListener('beforeunload', () => {
+        if (mediaStream) {
+          mediaStream.getTracks().forEach(t => t.stop());
+        }
+      });
+    }
+
+    // Clean up
+    window.addEventListener('beforeunload', () => {
+      if (timerInterval) clearInterval(timerInterval);
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
+      stopCamera();
+    });
+
+    init();
+  })();
+</script>
+</body>
+</html>
