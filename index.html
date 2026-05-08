@@ -2,723 +2,1067 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-  <title>🎥 Video Sạch + Overlay Đọc</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>ProVideo Recorder | DevMode</title>
+  <!-- Không sử dụng bất kỳ framework hay thư viện ngoài -->
   <style>
+    /* === CSS RESET & VARIABLES === */
     * {
-      box-sizing: border-box;
       margin: 0;
       padding: 0;
+      box-sizing: border-box;
     }
-
+    :root {
+      --bg: #0a0a0f;
+      --surface: rgba(18, 18, 26, 0.85);
+      --surface2: rgba(25, 25, 35, 0.7);
+      --text: #e0e0ff;
+      --text-secondary: #8888aa;
+      --accent: #00e5ff;
+      --accent2: #b44dff;
+      --danger: #ff3366;
+      --success: #00e676;
+      --warning: #ffaa00;
+      --border: rgba(0, 229, 255, 0.2);
+      --glass: rgba(10, 10, 20, 0.75);
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      --glow: 0 0 20px rgba(0, 229, 255, 0.3);
+      --radius: 16px;
+      --radius-sm: 10px;
+      --transition: 0.25s cubic-bezier(0.2, 0.9, 0.4, 1);
+    }
+    body.light {
+      --bg: #f5f7fa;
+      --surface: rgba(255, 255, 255, 0.7);
+      --surface2: rgba(240, 242, 245, 0.8);
+      --text: #1a1a2e;
+      --text-secondary: #5a5a7a;
+      --accent: #0077ff;
+      --accent2: #7b2fff;
+      --danger: #e6004c;
+      --success: #00b248;
+      --warning: #e69500;
+      --border: rgba(0, 100, 255, 0.25);
+      --glass: rgba(255, 255, 255, 0.6);
+      --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+      --glow: 0 0 25px rgba(0, 140, 255, 0.15);
+    }
     body {
-      background: #0b0f15;
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
-      margin: 0;
-      padding: 16px;
-      color: #eef2fb;
-    }
-
-    .app {
-      max-width: 1000px;
-      width: 100%;
-      background: rgba(18, 25, 35, 0.8);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(74, 144, 226, 0.2);
-      border-radius: 36px;
-      padding: 24px 20px 28px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,255,255,0.05) inset;
-    }
-
-    h1 {
-      font-weight: 500;
-      font-size: 1.8rem;
-      letter-spacing: -0.01em;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 18px;
-      padding-left: 8px;
-    }
-
-    h1 span {
-      background: #1e90ff;
-      font-size: 0.9rem;
-      padding: 2px 12px;
-      border-radius: 40px;
-      color: white;
-      font-weight: 400;
-    }
-
-    /* Video container */
-    .video-stage {
-      position: relative;
-      width: 100%;
+      overflow-x: hidden;
+      transition: background var(--transition), color var(--transition);
       display: flex;
       justify-content: center;
-      margin-bottom: 16px;
+      align-items: center;
+      padding: 10px;
     }
-
-    .video-wrapper {
-      position: relative;
+    /* === CUSTOM SCROLLBAR === */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 12px;
+      box-shadow: 0 0 8px var(--accent);
+    }
+    /* === MAIN CONTAINER === */
+    .app-container {
       width: 100%;
-      max-width: 100%;
-      border-radius: 24px;
+      max-width: 1300px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    /* === GLASS HEADER === */
+    .glass-header {
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      box-shadow: var(--shadow), var(--glow);
+      transition: all var(--transition);
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo {
+      font-weight: 700;
+      font-size: 1.3rem;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .recording-dot {
+      width: 10px;
+      height: 10px;
+      background: var(--danger);
+      border-radius: 50%;
+      animation: pulse 1.2s infinite;
+      box-shadow: 0 0 12px var(--danger);
+      display: none;
+    }
+    .recording-dot.active { display: block; }
+    @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.8); } 100% { opacity: 1; transform: scale(1); } }
+    .theme-toggle {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: all var(--transition);
+      font-weight: 600;
+    }
+    .theme-toggle:hover { background: var(--accent); color: #000; border-color: var(--accent); box-shadow: 0 0 16px var(--accent); }
+    /* === LAYOUT === */
+    .main-layout {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    /* === CAMERA PREVIEW === */
+    .preview-section {
+      flex: 2;
+      min-width: 300px;
+      position: relative;
+      border-radius: var(--radius);
       overflow: hidden;
       background: #000;
-      box-shadow: 0 0 0 2px rgba(30,144,255,0.2), 0 18px 30px -8px black;
-      border: 1px solid #2a3a50;
-      transition: aspect-ratio 0.2s ease;
-    }
-
-    /* aspect ratio classes */
-    .video-wrapper.aspect-auto {
-      aspect-ratio: auto;
-    }
-    .video-wrapper.aspect-16-9 {
+      box-shadow: var(--shadow), var(--glow);
+      border: 1px solid var(--border);
       aspect-ratio: 16 / 9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .video-wrapper.aspect-9-16 {
-      aspect-ratio: 9 / 16;
-    }
-
-    video {
+    .video-container {
+      position: relative;
       width: 100%;
       height: 100%;
-      display: block;
+    }
+    video#cameraPreview {
+      width: 100%;
+      height: 100%;
       object-fit: cover;
-      background: #0a0f14;
+      display: block;
     }
-
-    /* Overlay text - chỉ hiển thị, không ghi vào video */
-    .overlay-text {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: white;
-      font-weight: 700;
-      text-shadow: 2px 2px 10px rgba(0,0,0,0.8), 0 0 20px #00000080;
-      white-space: pre-wrap;
-      text-align: center;
-      pointer-events: none;  /* để kéo thả bắt từ handle riêng */
-      line-height: 1.3;
-      z-index: 20;
-      user-select: none;
-      padding: 6px 12px;
-      border-radius: 12px;
-      background: transparent;
-      backdrop-filter: none;
-      max-width: 90%;
-    }
-
-    /* handle để kéo thả */
-    .drag-handle {
+    .text-overlay-container {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
       pointer-events: none;
+      z-index: 10;
+    }
+    .text-overlay-item {
+      position: absolute;
+      cursor: move;
+      pointer-events: auto;
+      user-select: none;
+      white-space: nowrap;
+      font-weight: 600;
+      transition: box-shadow 0.1s;
+      line-height: 1.2;
+    }
+    .text-overlay-item.selected {
+      outline: 2px dashed var(--accent);
+      outline-offset: 4px;
+      box-shadow: 0 0 15px var(--accent);
+      z-index: 20;
+    }
+    .resize-handle {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      background: var(--accent);
+      border: 2px solid white;
+      border-radius: 50%;
+      bottom: -7px;
+      right: -7px;
+      cursor: nwse-resize;
+      display: none;
       z-index: 25;
     }
-
-    .overlay-text.draggable-active {
-      pointer-events: auto;
+    .rotate-handle {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      background: var(--warning);
+      border: 2px solid white;
+      border-radius: 50%;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
       cursor: grab;
+      display: none;
+      z-index: 25;
     }
-    .overlay-text.dragging {
-      cursor: grabbing;
-      opacity: 0.9;
-    }
-
-    /* controls */
-    .control-panel {
-      margin-top: 20px;
+    .text-overlay-item.selected .resize-handle,
+    .text-overlay-item.selected .rotate-handle { display: block; }
+    /* === SIDEBAR === */
+    .sidebar {
+      flex: 1;
+      min-width: 260px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 10px;
     }
-
-    .aspect-row {
+    .panel {
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      box-shadow: var(--shadow);
+      transition: all var(--transition);
+    }
+    .panel h3 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+      color: var(--accent);
       display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    .badge-group {
-      display: flex;
-      background: #1e2a36;
-      border-radius: 60px;
-      padding: 4px;
-      border: 1px solid #304a60;
-    }
-
-    .aspect-btn {
-      background: transparent;
-      border: none;
-      color: #b0c7e0;
-      padding: 10px 18px;
-      border-radius: 40px;
-      font-weight: 500;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: all 0.15s;
-      backdrop-filter: blur(4px);
-    }
-
-    .aspect-btn.active {
-      background: #1e90ff;
-      color: white;
-      box-shadow: 0 4px 12px #1e90ff40;
-    }
-
-    .btn {
-      background: #1f2e3f;
-      border: 1px solid #3a526b;
-      color: #f0f6ff;
-      padding: 10px 20px;
-      border-radius: 50px;
-      font-weight: 500;
-      font-size: 1rem;
-      cursor: pointer;
-      backdrop-filter: blur(8px);
-      transition: 0.15s;
-      box-shadow: 0 6px 12px #00000020;
-      display: inline-flex;
       align-items: center;
       gap: 6px;
     }
-
-    .btn-primary {
-      background: #1e90ff;
-      border-color: #7ab9ff;
-      color: white;
-      box-shadow: 0 6px 18px #1e90ff60;
-    }
-
-    .btn-danger {
-      background: #d32f2f;
-      border-color: #ff8a8a;
-      color: white;
-    }
-
-    .btn:disabled {
-      opacity: 0.5;
-      pointer-events: none;
-      filter: grayscale(0.6);
-    }
-
-    .text-editor {
+    .btn-group {
       display: flex;
       flex-wrap: wrap;
-      align-items: center;
-      gap: 16px;
-      background: #101a24b0;
-      padding: 12px 18px;
-      border-radius: 48px;
-      backdrop-filter: blur(8px);
-      border: 1px solid #2e4b6b;
+      gap: 8px;
     }
-
-    input, .text-editor input {
-      background: #1d2b39;
-      border: 1px solid #3c6080;
-      padding: 10px 16px;
-      border-radius: 40px;
-      color: white;
-      font-size: 1rem;
-      flex: 2 1 200px;
-    }
-
-    .slider-block {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .timer-badge {
-      font-family: monospace;
-      background: #0a121c;
-      padding: 8px 20px;
-      border-radius: 40px;
-      border: 1px solid #2e6c9e;
-      font-size: 1.4rem;
-      letter-spacing: 2px;
-    }
-
-    .status-led {
-      display: inline-block;
-      width: 12px;
-      height: 12px;
+    /* === BUTTONS === */
+    .btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 14px;
       border-radius: 20px;
-      background: #555;
-      margin-right: 6px;
-    }
-    .recording .status-led {
-      background: #ff3b3b;
-      box-shadow: 0 0 12px red;
-      animation: pulse 1.2s infinite;
-    }
-    @keyframes pulse { 0%{opacity:1} 50%{opacity:0.5} 100%{opacity:1} }
-
-    .flex-row {
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: all var(--transition);
       display: flex;
-      flex-wrap: wrap;
       align-items: center;
-      gap: 14px;
+      gap: 5px;
+      white-space: nowrap;
     }
-
-    .error-message {
-      color: #ffa098;
-      background: #3a1e1eb0;
-      padding: 10px 20px;
-      border-radius: 40px;
-      backdrop-filter: blur(4px);
+    .btn:hover {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+      box-shadow: 0 0 18px var(--accent);
+      transform: translateY(-1px);
     }
-
-    .hide-overlay .overlay-text {
-      display: none !important;
+    .btn.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+    .btn.danger { background: transparent; border-color: var(--danger); color: var(--danger); }
+    .btn.danger:hover { background: var(--danger); color: #fff; box-shadow: 0 0 18px var(--danger); }
+    .btn.small { padding: 4px 10px; font-size: 0.7rem; }
+    /* === INPUTS === */
+    input, select, .slider {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      color: var(--text);
+      font-size: 0.8rem;
+      width: 100%;
+      margin-top: 4px;
+      transition: all var(--transition);
     }
-
-    /* responsive */
-    @media (max-width: 600px) {
-      body { padding: 8px; }
-      .app { padding: 16px 12px; }
-      .btn { padding: 10px 16px; }
+    input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 12px var(--accent); }
+    /* === FAKE CONSOLE === */
+    .dev-console {
+      background: rgba(0,0,0,0.8);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius-sm);
+      padding: 8px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      color: #0f0;
+      height: 80px;
+      overflow-y: auto;
+      box-shadow: inset 0 0 10px rgba(0,255,0,0.2);
+    }
+    /* === TOAST === */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 10px 16px;
+      backdrop-filter: blur(20px);
+      box-shadow: var(--glow);
+      animation: slideIn 0.3s ease;
+      font-weight: 500;
+    }
+    @keyframes slideIn { from { opacity:0; transform: translateX(40px); } to { opacity:1; transform: translateX(0); } }
+    /* === MODAL === */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      width: 90%;
+      max-width: 700px;
+      box-shadow: var(--shadow), var(--glow);
+    }
+    /* === LOADING SCREEN === */
+    .loading-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      transition: opacity 0.5s;
+    }
+    .loading-screen.hidden { opacity: 0; pointer-events: none; }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* Responsive */
+    @media (max-width: 800px) {
+      .main-layout { flex-direction: column; }
+      .preview-section { aspect-ratio: 4/3; }
     }
   </style>
 </head>
-<body>
-<div class="app">
-  <h1>📹 Record Clean <span>overlay chỉ để đọc</span></h1>
+<body class="dark">
+  <!-- LOADING SCREEN -->
+  <div class="loading-screen" id="loadingScreen"><div class="spinner"></div></div>
 
-  <!-- video stage -->
-  <div class="video-stage">
-    <div class="video-wrapper aspect-auto" id="videoWrapper">
-      <video id="liveVideo" autoplay playsinline muted></video>
-      
-      <!-- Overlay text: KHÔNG bị ghi vào video -->
-      <div id="overlayText" class="overlay-text" style="font-size: 48px; color: #ffffff; opacity: 0.95;">
-        Đọc dòng này ✨
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- APP -->
+  <div class="app-container" id="appContainer">
+    <!-- HEADER -->
+    <header class="glass-header">
+      <div class="header-left">
+        <span class="logo">⚡ ProRec</span>
+        <span class="status-badge" id="camStatus">📷 Camera sẵn sàng</span>
+        <span class="status-badge" id="micStatus">🎤 Mic sẵn sàng</span>
+        <span class="recording-dot" id="recDot"></span>
+        <span id="timerDisplay" style="font-family:monospace;margin-left:8px;">00:00</span>
+        <span id="fpsDisplay" style="font-family:monospace;margin-left:6px;font-size:0.7rem;">FPS:--</span>
+        <span id="sizeDisplay" style="font-family:monospace;margin-left:6px;font-size:0.7rem;">0MB</span>
+      </div>
+      <button class="theme-toggle" id="themeToggle">☀️ Light</button>
+    </header>
+
+    <!-- MAIN LAYOUT -->
+    <div class="main-layout">
+      <!-- PREVIEW -->
+      <div class="preview-section" id="previewSection">
+        <div class="video-container" id="videoContainer">
+          <video id="cameraPreview" autoplay playsinline muted></video>
+          <div class="text-overlay-container" id="textOverlayContainer"></div>
+        </div>
+      </div>
+
+      <!-- SIDEBAR -->
+      <div class="sidebar">
+        <!-- CAMERA CONTROLS -->
+        <div class="panel">
+          <h3>🎥 Camera</h3>
+          <div class="btn-group">
+            <button class="btn" id="switchCameraBtn">🔄 Đổi Cam</button>
+            <button class="btn primary" id="startRecordBtn">⏺️ Quay</button>
+            <button class="btn" id="pauseRecordBtn" disabled>⏸️ Tạm dừng</button>
+            <button class="btn" id="resumeRecordBtn" disabled>▶️ Tiếp tục</button>
+            <button class="btn danger" id="stopRecordBtn" disabled>⏹️ Dừng</button>
+          </div>
+        </div>
+
+        <!-- TEXT OVERLAY PANEL -->
+        <div class="panel">
+          <h3>✍️ Text Overlay</h3>
+          <input type="text" id="newTextInput" placeholder="Nhập text mới...">
+          <div class="btn-group" style="margin-top:6px;">
+            <button class="btn small" id="addTextBtn">+ Thêm</button>
+            <button class="btn small" id="duplicateTextBtn">📋 Nhân bản</button>
+            <button class="btn small danger" id="deleteTextBtn">🗑️ Xóa</button>
+          </div>
+          <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+            <input type="color" id="textColorPicker" value="#00e5ff" title="Màu chữ">
+            <select id="fontFamilySelect" style="width:auto;">
+              <option value="Arial">Arial</option>
+              <option value="Segoe UI">Segoe UI</option>
+              <option value="Courier New">Courier New</option>
+              <option value="Impact">Impact</option>
+              <option value="Comic Sans MS">Comic Sans</option>
+            </select>
+            <input type="range" id="fontSizeSlider" min="12" max="120" value="32" step="1" title="Cỡ chữ" style="width:80px;">
+            <input type="range" id="opacitySlider" min="0.1" max="1" step="0.05" value="1" title="Độ mờ" style="width:70px;">
+            <select id="fontWeightSelect" style="width:auto;">
+              <option value="400">Regular</option>
+              <option value="700">Bold</option>
+              <option value="900">Black</option>
+            </select>
+            <select id="textAlignSelect" style="width:auto;">
+              <option value="left">Trái</option>
+              <option value="center">Giữa</option>
+              <option value="right">Phải</option>
+            </select>
+            <button class="btn small" id="shadowToggle">✨ Bóng</button>
+            <button class="btn small" id="bgBlurToggle">🌫️ Nền mờ</button>
+          </div>
+        </div>
+
+        <!-- LAYER MANAGER -->
+        <div class="panel">
+          <h3>📚 Layers</h3>
+          <div id="layerList" style="max-height:120px; overflow-y:auto; font-size:0.75rem;"></div>
+        </div>
+
+        <!-- DEV CONSOLE -->
+        <div class="dev-console" id="devConsole">
+          > System initialized.<br>
+          > Ready.
+        </div>
+      </div>
+    </div>
+
+    <!-- VIDEO PLAYER MODAL -->
+    <div class="modal-overlay" id="videoModal">
+      <div class="modal">
+        <h3>🎬 Xem lại video</h3>
+        <video id="reviewVideo" controls style="width:100%; border-radius:12px; margin:12px 0;"></video>
+        <div class="btn-group">
+          <button class="btn primary" id="downloadVideoBtn">⬇️ Tải MP4</button>
+          <button class="btn danger" id="deleteVideoBtn">🗑️ Xóa</button>
+          <button class="btn" id="closeModalBtn">Đóng</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Điều khiển khung hình & start camera -->
-  <div class="aspect-row">
-    <div class="badge-group">
-      <button class="aspect-btn active" data-aspect="auto">📐 Full</button>
-      <button class="aspect-btn" data-aspect="16-9">📺 16:9</button>
-      <button class="aspect-btn" data-aspect="9-16">📱 9:16</button>
-    </div>
-    <button class="btn" id="startCameraBtn">▶ Bắt đầu camera</button>
-    <button class="btn" id="toggleOverlayBtn">👁 Ẩn overlay</button>
-  </div>
+  <script>
+    (function() {
+      // ==================== MODULE PATTERN ====================
+      // Toàn bộ ứng dụng được đóng gói trong IIFE để tránh xung đột global
 
-  <!-- Text editor & style -->
-  <div class="text-editor">
-    <input type="text" id="overlayInput" placeholder="Nhập text..." value="Đọc dòng này ✨" style="min-width:180px;">
-    <div class="slider-block">
-      <label>🔤 Size</label>
-      <input type="range" id="fontSizeSlider" min="16" max="120" value="48" step="2">
-    </div>
-    <input type="color" id="colorPicker" value="#ffffff">
-    <div class="slider-block">
-      <label>💧 Opacity</label>
-      <input type="range" id="opacitySlider" min="0.1" max="1" step="0.05" value="0.95">
-    </div>
-  </div>
+      // ---------- DOM REFS ----------
+      const $ = (sel) => document.querySelector(sel);
+      const $$ = (sel) => document.querySelectorAll(sel);
 
-  <!-- Recording controls -->
-  <div class="flex-row">
-    <button class="btn btn-primary" id="startRecordBtn" disabled>⏺ Bắt đầu quay</button>
-    <button class="btn btn-danger" id="stopRecordBtn" disabled>⏹ Dừng quay</button>
-    <div class="timer-badge" id="timerDisplay">00:00</div>
-    <div id="recordStatus" style="display:flex;align-items:center;">
-      <span class="status-led"></span> <span id="statusText">Sẵn sàng</span>
-    </div>
-  </div>
+      const loadingScreen = $('#loadingScreen');
+      const themeToggle = $('#themeToggle');
+      const cameraPreview = $('#cameraPreview');
+      const textOverlayContainer = $('#textOverlayContainer');
+      const camStatus = $('#camStatus');
+      const micStatus = $('#micStatus');
+      const recDot = $('#recDot');
+      const timerDisplay = $('#timerDisplay');
+      const fpsDisplay = $('#fpsDisplay');
+      const sizeDisplay = $('#sizeDisplay');
+      const devConsole = $('#devConsole');
+      const layerList = $('#layerList');
+      const videoModal = $('#videoModal');
+      const reviewVideo = $('#reviewVideo');
+      const toastContainer = $('#toastContainer');
 
-  <!-- Download & lỗi -->
-  <div class="flex-row">
-    <button class="btn" id="downloadBtn" disabled>⬇ Tải video (MP4)</button>
-    <button class="btn" id="resetSettingsBtn">🔄 Reset</button>
-  </div>
-  <div id="errorBox" class="error-message" style="display:none;"></div>
-  <p style="opacity:0.7; margin-top:12px; font-size:0.85rem;">✨ Overlay chỉ hiện trên màn hình – video xuất ra không chứa chữ.</p>
-</div>
+      // Buttons
+      const switchCameraBtn = $('#switchCameraBtn');
+      const startRecordBtn = $('#startRecordBtn');
+      const pauseRecordBtn = $('#pauseRecordBtn');
+      const resumeRecordBtn = $('#resumeRecordBtn');
+      const stopRecordBtn = $('#stopRecordBtn');
+      const addTextBtn = $('#addTextBtn');
+      const duplicateTextBtn = $('#duplicateTextBtn');
+      const deleteTextBtn = $('#deleteTextBtn');
+      const downloadVideoBtn = $('#downloadVideoBtn');
+      const deleteVideoBtn = $('#deleteVideoBtn');
+      const closeModalBtn = $('#closeModalBtn');
+      const newTextInput = $('#newTextInput');
+      const textColorPicker = $('#textColorPicker');
+      const fontFamilySelect = $('#fontFamilySelect');
+      const fontSizeSlider = $('#fontSizeSlider');
+      const opacitySlider = $('#opacitySlider');
+      const fontWeightSelect = $('#fontWeightSelect');
+      const textAlignSelect = $('#textAlignSelect');
+      const shadowToggle = $('#shadowToggle');
+      const bgBlurToggle = $('#bgBlurToggle');
 
-<script>
-  (function(){
-    "use strict";
+      // ---------- STATE ----------
+      let currentStream = null;
+      let mediaRecorder = null;
+      let recordedChunks = [];
+      let recordingStartTime = null;
+      let timerInterval = null;
+      let fpsInterval = null;
+      let frameCount = 0;
+      let lastFpsTime = performance.now();
+      let currentFps = 0;
+      let isRecording = false;
+      let isPaused = false;
+      let currentCameraFacing = 'user'; // 'user' front, 'environment' back
+      let selectedTextId = null;
+      let textObjects = []; // { id, content, x, y, fontSize, color, fontFamily, opacity, fontWeight, textAlign, shadow, bgBlur, rotation, width, height }
+      let textIdCounter = 0;
+      let videoBlobUrl = null;
+      let videoBlob = null;
+      let isDragging = false;
+      let dragOffsetX, dragOffsetY, dragTargetId;
+      let isResizing = false, resizeTargetId;
+      let isRotating = false, rotateTargetId, rotateStartAngle, rotateCenterX, rotateCenterY;
 
-    // DOM elements
-    const video = document.getElementById('liveVideo');
-    const wrapper = document.getElementById('videoWrapper');
-    const overlay = document.getElementById('overlayText');
-    const startCamBtn = document.getElementById('startCameraBtn');
-    const toggleOverlayBtn = document.getElementById('toggleOverlayBtn');
-    const overlayInput = document.getElementById('overlayInput');
-    const fontSizeSlider = document.getElementById('fontSizeSlider');
-    const colorPicker = document.getElementById('colorPicker');
-    const opacitySlider = document.getElementById('opacitySlider');
-    const startRecordBtn = document.getElementById('startRecordBtn');
-    const stopRecordBtn = document.getElementById('stopRecordBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const timerDisplay = document.getElementById('timerDisplay');
-    const statusText = document.getElementById('statusText');
-    const recordStatusDiv = document.getElementById('recordStatus');
-    const errorBox = document.getElementById('errorBox');
-    const resetBtn = document.getElementById('resetSettingsBtn');
-
-    // state
-    let mediaStream = null;
-    let mediaRecorder = null;
-    let recordedChunks = [];
-    let recordingStartTime = null;
-    let timerInterval = null;
-    let isRecording = false;
-    let currentAspect = 'auto'; // auto, 16-9, 9-16
-    let overlayVisible = true;
-
-    // drag state cho overlay
-    let isDragging = false;
-    let dragOffsetX = 0, dragOffsetY = 0;
-    let overlayInitialTop, overlayInitialLeft;
-    const overlayDefaultPos = { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
-
-    // localStorage keys
-    const STORAGE_TEXT = 'vc_overlay_text';
-    const STORAGE_ASPECT = 'vc_aspect';
-
-    // --- Khởi tạo localStorage ---
-    function loadSettings() {
-      const savedText = localStorage.getItem(STORAGE_TEXT);
-      if (savedText) {
-        overlayInput.value = savedText;
-        overlay.textContent = savedText;
+      // ---------- UTILS ----------
+      function logToConsole(msg) {
+        devConsole.innerHTML += `<br>> ${msg}`;
+        devConsole.scrollTop = devConsole.scrollHeight;
       }
-      const savedAspect = localStorage.getItem(STORAGE_ASPECT);
-      if (savedAspect && ['auto','16-9','9-16'].includes(savedAspect)) {
-        setAspect(savedAspect);
+      function showToast(msg, type='info') {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = msg;
+        toast.style.borderColor = type==='error' ? 'var(--danger)' : 'var(--accent)';
+        toastContainer.appendChild(toast);
+        setTimeout(() => { toast.style.opacity='0'; setTimeout(()=>toast.remove(),300); }, 2500);
+        logToConsole(msg);
       }
-    }
-    function saveTextToStorage(text) {
-      localStorage.setItem(STORAGE_TEXT, text);
-    }
-    function saveAspectToStorage(aspect) {
-      localStorage.setItem(STORAGE_ASPECT, aspect);
-    }
-
-    // set aspect & update class
-    function setAspect(aspect) {
-      currentAspect = aspect;
-      wrapper.className = 'video-wrapper';
-      if (aspect === '16-9') wrapper.classList.add('aspect-16-9');
-      else if (aspect === '9-16') wrapper.classList.add('aspect-9-16');
-      else wrapper.classList.add('aspect-auto');
-      
-      document.querySelectorAll('.aspect-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if(btn.dataset.aspect === aspect) btn.classList.add('active');
-      });
-      saveAspectToStorage(aspect);
-    }
-
-    // hiển thị lỗi
-    function showError(msg) {
-      errorBox.style.display = 'block';
-      errorBox.textContent = '⚠️ ' + msg;
-    }
-    function clearError() {
-      errorBox.style.display = 'none';
-    }
-
-    // format time mm:ss
-    function formatTime(seconds) {
-      const m = Math.floor(seconds / 60).toString().padStart(2,'0');
-      const s = Math.floor(seconds % 60).toString().padStart(2,'0');
-      return `${m}:${s}`;
-    }
-
-    // dừng stream cũ
-    function stopMediaTracks() {
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-        mediaStream = null;
+      function formatTime(seconds) {
+        const m = Math.floor(seconds/60).toString().padStart(2,'0');
+        const s = Math.floor(seconds%60).toString().padStart(2,'0');
+        return `${m}:${s}`;
       }
-      video.srcObject = null;
-    }
+      function formatBytes(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
+        return (bytes/1048576).toFixed(2) + ' MB';
+      }
 
-    // Bắt đầu camera (chỉ khi bấm nút)
-    async function startCamera() {
-      clearError();
-      try {
-        stopMediaTracks(); 
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        mediaStream = stream;
-        video.srcObject = stream;
-        await video.play();
-        
-        startRecordBtn.disabled = false;
-        statusText.textContent = 'Camera sẵn sàng';
-        recordStatusDiv.classList.remove('recording');
-        showError(''); // clear
-      } catch (err) {
-        console.error(err);
-        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          showError('Bạn đã từ chối quyền truy cập camera/mic. Hãy cấp quyền và thử lại.');
-        } else if (err.name === 'NotFoundError') {
-          showError('Không tìm thấy camera hoặc microphone.');
-        } else {
-          showError('Lỗi truy cập: ' + err.message);
+      // ---------- CAMERA INIT ----------
+      async function getCameras() {
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoDevices = devices.filter(d => d.kind === 'videoinput');
+          logToConsole(`Found ${videoDevices.length} cameras`);
+          return videoDevices;
+        } catch (e) {
+          showToast('Không thể liệt kê thiết bị', 'error');
+          return [];
         }
-        startRecordBtn.disabled = true;
-        stopRecordBtn.disabled = true;
-        statusText.textContent = 'Lỗi quyền';
-      }
-    }
-
-    // Bắt đầu quay (chỉ ghi stream gốc)
-    function startRecording() {
-      if (!mediaStream) {
-        showError('Chưa có camera, vui lòng bấm "Bắt đầu camera"');
-        return;
-      }
-      recordedChunks = [];
-      
-      // Ưu tiên MP4 (H.264) cho iPhone
-      let mimeType = '';
-      const mp4Supported = MediaRecorder.isTypeSupported('video/mp4');
-      if (mp4Supported) {
-        mimeType = 'video/mp4';
-      } else {
-        mimeType = 'video/webm;codecs=vp8,opus'; // fallback WebM
-      }
-      
-      try {
-        mediaRecorder = new MediaRecorder(mediaStream, { mimeType: mimeType || undefined });
-      } catch(e) {
-        mediaRecorder = new MediaRecorder(mediaStream);
       }
 
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) recordedChunks.push(e.data);
-      };
-      
-      mediaRecorder.onstart = () => {
-        isRecording = true;
-        recordingStartTime = Date.now();
-        startRecordBtn.disabled = true;
-        stopRecordBtn.disabled = false;
-        downloadBtn.disabled = true;
-        statusText.textContent = '🔴 Đang quay';
-        recordStatusDiv.classList.add('recording');
-        timerInterval = setInterval(() => {
-          if (!recordingStartTime) return;
-          const elapsed = (Date.now() - recordingStartTime) / 1000;
-          timerDisplay.textContent = formatTime(elapsed);
-        }, 200);
-      };
-
-      mediaRecorder.onstop = () => {
-        isRecording = false;
-        clearInterval(timerInterval);
-        timerInterval = null;
-        startRecordBtn.disabled = false;
-        stopRecordBtn.disabled = true;
-        statusText.textContent = 'Đã dừng';
-        recordStatusDiv.classList.remove('recording');
-        
-        if (recordedChunks.length) {
-          const mime = mediaRecorder.mimeType || 'video/webm';
-          const blob = new Blob(recordedChunks, { type: mime });
-          const url = URL.createObjectURL(blob);
-          downloadBtn.disabled = false;
-          downloadBtn.onclick = () => {
-            const a = document.createElement('a');
-            const timestamp = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-            // cố gắng dùng .mp4 nếu là mp4, không thì .webm
-            let ext = mime.includes('mp4') ? 'mp4' : 'webm';
-            a.href = url;
-            a.download = `video_record_${timestamp}.${ext}`;
-            a.click();
+      async function startCamera(facingMode = 'user') {
+        if (currentStream) {
+          currentStream.getTracks().forEach(track => track.stop());
+        }
+        try {
+          const constraints = {
+            video: {
+              facingMode: { ideal: facingMode },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              frameRate: { ideal: 30 }
+            },
+            audio: true
           };
-        } else {
-          showError('Không có dữ liệu video');
+          currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+          cameraPreview.srcObject = currentStream;
+          currentCameraFacing = facingMode;
+          camStatus.textContent = `📷 Camera ${facingMode==='user'?'trước':'sau'}`;
+          micStatus.textContent = '🎤 Mic hoạt động';
+          logToConsole(`Camera started: ${facingMode}`);
+          showToast('Camera đã sẵn sàng');
+          // Cập nhật FPS monitoring
+          startFpsCounter();
+        } catch (err) {
+          showToast('Lỗi truy cập camera: ' + err.message, 'error');
+          logToConsole('Camera error: ' + err.message);
         }
-      };
-
-      mediaRecorder.start(1000); // timeslice 1s
-    }
-
-    function stopRecording() {
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        mediaRecorder.stop();
       }
-    }
 
-    // Reset overlay vị trí về giữa
-    function resetOverlayPosition() {
-      overlay.style.top = overlayDefaultPos.top;
-      overlay.style.left = overlayDefaultPos.left;
-      overlay.style.transform = overlayDefaultPos.transform;
-    }
+      async function switchCamera() {
+        const newFacing = currentCameraFacing === 'user' ? 'environment' : 'user';
+        await startCamera(newFacing);
+        showToast(`Đã chuyển sang camera ${newFacing==='user'?'trước':'sau'}`);
+      }
 
-    // --- Drag & Drop overlay ---
-    function makeDraggable(el) {
-      el.addEventListener('mousedown', (e) => {
-        if (e.button !== 0) return;
-        e.preventDefault();
-        // lấy vị trí hiện tại
-        const rect = el.getBoundingClientRect();
-        const wrapperRect = wrapper.getBoundingClientRect();
-        
-        // tính offset từ chuột đến góc phần tử
-        const offsetX = e.clientX - rect.left;
-        const offsetY = e.clientY - rect.top;
-        
-        isDragging = true;
-        el.classList.add('dragging');
-        el.style.cursor = 'grabbing';
-        el.style.pointerEvents = 'auto';
-        
-        function onMouseMove(moveEvent) {
-          if (!isDragging) return;
-          moveEvent.preventDefault();
-          
-          let x = moveEvent.clientX - offsetX;
-          let y = moveEvent.clientY - offsetY;
-          
-          // giới hạn trong wrapper (tương đối)
-          const wrapRect = wrapper.getBoundingClientRect();
-          const elRect = el.getBoundingClientRect();
-          
-          // tính % dựa trên wrapper
-          const leftPercent = ((x - wrapRect.left) / wrapRect.width) * 100;
-          const topPercent = ((y - wrapRect.top) / wrapRect.height) * 100;
-          
-          // clamp nhẹ
-          const clampLeft = Math.min(100 - (elRect.width/wrapRect.width)*100, Math.max(0, leftPercent));
-          const clampTop = Math.min(100 - (elRect.height/wrapRect.height)*100, Math.max(0, topPercent));
-          
-          el.style.left = clampLeft + '%';
-          el.style.top = clampTop + '%';
-          el.style.transform = 'none'; // bỏ translate
+      function startFpsCounter() {
+        frameCount = 0;
+        lastFpsTime = performance.now();
+        if (fpsInterval) clearInterval(fpsInterval);
+        fpsInterval = setInterval(() => {
+          const now = performance.now();
+          const delta = now - lastFpsTime;
+          currentFps = Math.round((frameCount / delta) * 1000);
+          frameCount = 0;
+          lastFpsTime = now;
+          fpsDisplay.textContent = `FPS:${currentFps}`;
+        }, 500);
+        cameraPreview.addEventListener('timeupdate', () => { frameCount++; });
+      }
+
+      // ---------- RECORDING ----------
+      function startRecording() {
+        if (!currentStream) return showToast('Chưa có camera', 'error');
+        try {
+          const options = { mimeType: 'video/webm; codecs=vp9,opus' };
+          if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+            options.mimeType = 'video/webm; codecs=vp8,opus';
+            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+              options.mimeType = 'video/webm';
+            }
+          }
+          mediaRecorder = new MediaRecorder(currentStream, options);
+          recordedChunks = [];
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) recordedChunks.push(e.data);
+          };
+          mediaRecorder.onstop = () => {
+            clearInterval(timerInterval);
+            isRecording = false;
+            isPaused = false;
+            recDot.classList.remove('active');
+            updateRecordButtons();
+            const blob = new Blob(recordedChunks, { type: options.mimeType });
+            videoBlob = blob;
+            if (videoBlobUrl) URL.revokeObjectURL(videoBlobUrl);
+            videoBlobUrl = URL.createObjectURL(blob);
+            reviewVideo.src = videoBlobUrl;
+            videoModal.style.display = 'flex';
+            sizeDisplay.textContent = formatBytes(blob.size);
+            showToast('Quay xong! Video đã sẵn sàng');
+            logToConsole(`Recording finished: ${formatBytes(blob.size)}`);
+          };
+          mediaRecorder.start(1000); // timeslice 1s
+          recordingStartTime = Date.now();
+          isRecording = true;
+          recDot.classList.add('active');
+          updateRecordButtons();
+          timerInterval = setInterval(() => {
+            const elapsed = (Date.now() - recordingStartTime) / 1000;
+            timerDisplay.textContent = formatTime(elapsed);
+          }, 200);
+          showToast('Bắt đầu quay video');
+        } catch (e) {
+          showToast('Không thể bắt đầu quay: ' + e.message, 'error');
         }
-        
-        function onMouseUp() {
-          isDragging = false;
-          el.classList.remove('dragging');
-          el.style.cursor = 'grab';
-          el.style.pointerEvents = 'auto'; // vẫn cho kéo
-          window.removeEventListener('mousemove', onMouseMove);
-          window.removeEventListener('mouseup', onMouseUp);
-        }
-        
-        window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('mouseup', onMouseUp);
-      });
-      
-      el.addEventListener('dragstart', (e) => e.preventDefault());
-      el.style.pointerEvents = 'auto';
-      el.style.cursor = 'grab';
-    }
+      }
 
-    // --- event listeners ---
-    function initUI() {
-      loadSettings();
-      
-      // Aspect buttons
-      document.querySelectorAll('.aspect-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          setAspect(btn.dataset.aspect);
+      function pauseRecording() {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+          mediaRecorder.pause();
+          isPaused = true;
+          updateRecordButtons();
+          showToast('Tạm dừng quay');
+        }
+      }
+
+      function resumeRecording() {
+        if (mediaRecorder && mediaRecorder.state === 'paused') {
+          mediaRecorder.resume();
+          isPaused = false;
+          updateRecordButtons();
+          showToast('Tiếp tục quay');
+        }
+      }
+
+      function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+          logToConsole('Stop recording requested');
+        }
+      }
+
+      function updateRecordButtons() {
+        startRecordBtn.disabled = isRecording;
+        pauseRecordBtn.disabled = !isRecording || isPaused;
+        resumeRecordBtn.disabled = !isPaused;
+        stopRecordBtn.disabled = !isRecording;
+      }
+
+      // ---------- TEXT OVERLAY ENGINE ----------
+      function createTextObject(content = 'Text') {
+        return {
+          id: ++textIdCounter,
+          content,
+          x: 50 + Math.random()*30,
+          y: 50 + Math.random()*30,
+          fontSize: 32,
+          color: textColorPicker.value,
+          fontFamily: fontFamilySelect.value,
+          opacity: 1,
+          fontWeight: '700',
+          textAlign: 'left',
+          shadow: false,
+          bgBlur: false,
+          rotation: 0,
+          width: 200,
+          height: 50
+        };
+      }
+
+      function renderTextOverlays() {
+        textOverlayContainer.innerHTML = '';
+        textObjects.forEach(obj => {
+          const div = document.createElement('div');
+          div.className = 'text-overlay-item' + (obj.id === selectedTextId ? ' selected' : '');
+          div.id = `text-${obj.id}`;
+          div.textContent = obj.content;
+          div.style.left = obj.x + 'px';
+          div.style.top = obj.y + 'px';
+          div.style.fontSize = obj.fontSize + 'px';
+          div.style.color = obj.color;
+          div.style.fontFamily = obj.fontFamily;
+          div.style.opacity = obj.opacity;
+          div.style.fontWeight = obj.fontWeight;
+          div.style.textAlign = obj.textAlign;
+          div.style.transform = `rotate(${obj.rotation}deg)`;
+          if (obj.shadow) div.style.textShadow = '2px 2px 8px rgba(0,0,0,0.8), 0 0 15px currentColor';
+          if (obj.bgBlur) {
+            div.style.background = 'rgba(0,0,0,0.35)';
+            div.style.backdropFilter = 'blur(6px)';
+            div.style.webkitBackdropFilter = 'blur(6px)';
+            div.style.borderRadius = '8px';
+            div.style.padding = '4px 8px';
+          }
+          // handles
+          const resizeHandle = document.createElement('div');
+          resizeHandle.className = 'resize-handle';
+          div.appendChild(resizeHandle);
+          const rotateHandle = document.createElement('div');
+          rotateHandle.className = 'rotate-handle';
+          div.appendChild(rotateHandle);
+          // events
+          div.addEventListener('mousedown', onTextMouseDown);
+          div.addEventListener('touchstart', onTextTouchStart, {passive: false});
+          textOverlayContainer.appendChild(div);
         });
-      });
-      
-      startCamBtn.addEventListener('click', startCamera);
-      
-      // overlay text realtime
-      overlayInput.addEventListener('input', (e) => {
-        overlay.textContent = e.target.value;
-        saveTextToStorage(e.target.value);
-      });
-      
-      fontSizeSlider.addEventListener('input', (e) => {
-        overlay.style.fontSize = e.target.value + 'px';
-      });
-      
-      colorPicker.addEventListener('input', (e) => {
-        overlay.style.color = e.target.value;
-      });
-      
-      opacitySlider.addEventListener('input', (e) => {
-        overlay.style.opacity = e.target.value;
-      });
-      
-      // toggle overlay visibility (ẩn/hiện)
-      toggleOverlayBtn.addEventListener('click', () => {
-        overlayVisible = !overlayVisible;
-        if (overlayVisible) {
-          overlay.style.display = 'block';
-          toggleOverlayBtn.textContent = '👁 Ẩn overlay';
-          wrapper.classList.remove('hide-overlay');
-        } else {
-          overlay.style.display = 'none';
-          toggleOverlayBtn.textContent = '👁 Hiện overlay';
-          wrapper.classList.add('hide-overlay');
-        }
-      });
-      
-      // record buttons
-      startRecordBtn.addEventListener('click', startRecording);
-      stopRecordBtn.addEventListener('click', stopRecording);
-      
-      // reset
-      resetBtn.addEventListener('click', () => {
-        overlayInput.value = 'Đọc dòng này ✨';
-        overlay.textContent = 'Đọc dòng này ✨';
-        fontSizeSlider.value = 48;
-        overlay.style.fontSize = '48px';
-        colorPicker.value = '#ffffff';
-        overlay.style.color = '#ffffff';
-        opacitySlider.value = 0.95;
-        overlay.style.opacity = '0.95';
-        resetOverlayPosition();
-        setAspect('auto');
-        saveTextToStorage('Đọc dòng này ✨');
-        saveAspectToStorage('auto');
-        if (!overlayVisible) {
-          overlayVisible = true; overlay.style.display='block'; toggleOverlayBtn.textContent='👁 Ẩn overlay';
-          wrapper.classList.remove('hide-overlay');
-        }
-      });
-      
-      // Khởi tạo overlay draggable
-      makeDraggable(overlay);
-      
-      // Cleanup khi rời trang
-      window.addEventListener('beforeunload', () => {
-        if (mediaStream) stopMediaTracks();
-      });
-    }
+        updateLayerList();
+      }
 
-    // init position
-    resetOverlayPosition();
-    initUI();
-    // set default aspect
-    setAspect(currentAspect);
-    overlay.style.fontSize = fontSizeSlider.value+'px';
-    overlay.style.color = colorPicker.value;
-    overlay.style.opacity = opacitySlider.value;
-  })();
-</script>
+      function updateLayerList() {
+        layerList.innerHTML = textObjects.map((obj, idx) => 
+          `<div style="padding:4px; cursor:pointer; background:${obj.id===selectedTextId?'var(--accent)':'transparent'}; color:${obj.id===selectedTextId?'#000':'inherit'}; border-radius:6px;" data-id="${obj.id}">Layer ${idx+1}: ${obj.content.substring(0,15)}</div>`
+        ).join('');
+        // add click to select
+        layerList.querySelectorAll('div').forEach(div => {
+          div.addEventListener('click', (e) => {
+            const id = parseInt(div.dataset.id);
+            selectText(id);
+          });
+        });
+      }
+
+      function selectText(id) {
+        selectedTextId = id;
+        const obj = textObjects.find(o => o.id === id);
+        if (obj) {
+          textColorPicker.value = obj.color;
+          fontFamilySelect.value = obj.fontFamily;
+          fontSizeSlider.value = obj.fontSize;
+          opacitySlider.value = obj.opacity;
+          fontWeightSelect.value = obj.fontWeight;
+          textAlignSelect.value = obj.textAlign;
+          shadowToggle.textContent = obj.shadow ? '✨ Bóng (on)' : '✨ Bóng';
+          bgBlurToggle.textContent = obj.bgBlur ? '🌫️ Nền mờ (on)' : '🌫️ Nền mờ';
+        }
+        renderTextOverlays();
+      }
+
+      function deleteSelectedText() {
+        if (selectedTextId) {
+          textObjects = textObjects.filter(o => o.id !== selectedTextId);
+          selectedTextId = null;
+          renderTextOverlays();
+        }
+      }
+
+      function duplicateSelectedText() {
+        const obj = textObjects.find(o => o.id === selectedTextId);
+        if (obj) {
+          const newObj = {...obj, id: ++textIdCounter, x: obj.x+20, y: obj.y+20};
+          textObjects.push(newObj);
+          selectText(newObj.id);
+          renderTextOverlays();
+        }
+      }
+
+      function updateSelectedTextProperty() {
+        const obj = textObjects.find(o => o.id === selectedTextId);
+        if (!obj) return;
+        obj.color = textColorPicker.value;
+        obj.fontFamily = fontFamilySelect.value;
+        obj.fontSize = parseInt(fontSizeSlider.value);
+        obj.opacity = parseFloat(opacitySlider.value);
+        obj.fontWeight = fontWeightSelect.value;
+        obj.textAlign = textAlignSelect.value;
+        renderTextOverlays();
+      }
+
+      // Drag & Drop handlers
+      function getEventPos(e, isTouch) {
+        if (isTouch) {
+          const touch = e.touches[0] || e.changedTouches[0];
+          return { clientX: touch.clientX, clientY: touch.clientY };
+        }
+        return { clientX: e.clientX, clientY: e.clientY };
+      }
+
+      function onTextMouseDown(e) {
+        e.preventDefault();
+        const div = e.currentTarget;
+        const id = parseInt(div.id.replace('text-',''));
+        selectText(id);
+        // Kiểm tra nếu click vào handle resize hoặc rotate
+        if (e.target.classList.contains('resize-handle')) {
+          startResize(id, e.clientX, e.clientY);
+          return;
+        }
+        if (e.target.classList.contains('rotate-handle')) {
+          startRotate(id, e.clientX, e.clientY);
+          return;
+        }
+        startDrag(id, e.clientX, e.clientY, false);
+      }
+
+      function onTextTouchStart(e) {
+        e.preventDefault();
+        const div = e.currentTarget;
+        const id = parseInt(div.id.replace('text-',''));
+        selectText(id);
+        const pos = getEventPos(e, true);
+        if (e.target.classList.contains('resize-handle')) {
+          startResize(id, pos.clientX, pos.clientY);
+          return;
+        }
+        if (e.target.classList.contains('rotate-handle')) {
+          startRotate(id, pos.clientX, pos.clientY);
+          return;
+        }
+        startDrag(id, pos.clientX, pos.clientY, true);
+      }
+
+      function startDrag(id, clientX, clientY, isTouch) {
+        isDragging = true;
+        dragTargetId = id;
+        const obj = textObjects.find(o => o.id === id);
+        const rect = document.getElementById(`text-${id}`).getBoundingClientRect();
+        dragOffsetX = clientX - rect.left;
+        dragOffsetY = clientY - rect.top;
+        window.addEventListener(isTouch?'touchmove':'mousemove', onDragMove);
+        window.addEventListener(isTouch?'touchend':'mouseup', onDragEnd);
+      }
+
+      function onDragMove(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const isTouch = e.type.startsWith('touch');
+        const pos = getEventPos(e, isTouch);
+        const containerRect = textOverlayContainer.getBoundingClientRect();
+        const newX = pos.clientX - containerRect.left - dragOffsetX;
+        const newY = pos.clientY - containerRect.top - dragOffsetY;
+        const obj = textObjects.find(o => o.id === dragTargetId);
+        if (obj) {
+          obj.x = Math.max(0, Math.min(newX, containerRect.width - 20));
+          obj.y = Math.max(0, Math.min(newY, containerRect.height - 20));
+          renderTextOverlays();
+        }
+      }
+
+      function onDragEnd() {
+        isDragging = false;
+        window.removeEventListener('mousemove', onDragMove);
+        window.removeEventListener('mouseup', onDragEnd);
+        window.removeEventListener('touchmove', onDragMove);
+        window.removeEventListener('touchend', onDragEnd);
+      }
+
+      function startResize(id, clientX, clientY) {
+        isResizing = true;
+        resizeTargetId = id;
+        window.addEventListener('mousemove', onResizeMove);
+        window.addEventListener('mouseup', onResizeEnd);
+      }
+
+      function onResizeMove(e) {
+        if (!isResizing) return;
+        const obj = textObjects.find(o => o.id === resizeTargetId);
+        const containerRect = textOverlayContainer.getBoundingClientRect();
+        const newWidth = e.clientX - containerRect.left - obj.x;
+        const newHeight = e.clientY - containerRect.top - obj.y;
+        if (obj) {
+          obj.fontSize = Math.max(12, Math.min(120, Math.max(newWidth/3, newHeight/1.5)));
+          fontSizeSlider.value = obj.fontSize;
+          renderTextOverlays();
+        }
+      }
+
+      function onResizeEnd() {
+        isResizing = false;
+        window.removeEventListener('mousemove', onResizeMove);
+        window.removeEventListener('mouseup', onResizeEnd);
+      }
+
+      function startRotate(id, clientX, clientY) {
+        isRotating = true;
+        rotateTargetId = id;
+        const obj = textObjects.find(o => o.id === id);
+        const el = document.getElementById(`text-${id}`);
+        const rect = el.getBoundingClientRect();
+        rotateCenterX = rect.left + rect.width/2;
+        rotateCenterY = rect.top + rect.height/2;
+        rotateStartAngle = Math.atan2(clientY - rotateCenterY, clientX - rotateCenterX) * 180 / Math.PI - obj.rotation;
+        window.addEventListener('mousemove', onRotateMove);
+        window.addEventListener('mouseup', onRotateEnd);
+      }
+
+      function onRotateMove(e) {
+        if (!isRotating) return;
+        const obj = textObjects.find(o => o.id === rotateTargetId);
+        const angle = Math.atan2(e.clientY - rotateCenterY, e.clientX - rotateCenterX) * 180 / Math.PI - rotateStartAngle;
+        if (obj) {
+          obj.rotation = angle % 360;
+          renderTextOverlays();
+        }
+      }
+
+      function onRotateEnd() {
+        isRotating = false;
+        window.removeEventListener('mousemove', onRotateMove);
+        window.removeEventListener('mouseup', onRotateEnd);
+      }
+
+      // ---------- THEME ----------
+      function toggleTheme() {
+        document.body.classList.toggle('light');
+        const isLight = document.body.classList.contains('light');
+        themeToggle.textContent = isLight ? '🌙 Dark' : '☀️ Light';
+        localStorage.setItem('theme', isLight ? 'light' : 'dark');
+      }
+
+      // ---------- VIDEO MODAL ----------
+      function downloadVideo() {
+        if (!videoBlob) return showToast('Chưa có video', 'error');
+        const a = document.createElement('a');
+        const ext = videoBlob.type.includes('mp4') ? 'mp4' : 'webm';
+        const filename = `video_${new Date().toISOString().replace(/[:.]/g,'-')}.${ext}`;
+        a.href = URL.createObjectURL(videoBlob);
+        a.download = filename;
+        a.click();
+        showToast('Đang tải video...');
+      }
+
+      function deleteVideo() {
+        if (videoBlobUrl) URL.revokeObjectURL(videoBlobUrl);
+        videoBlob = null;
+        videoBlobUrl = null;
+        reviewVideo.src = '';
+        videoModal.style.display = 'none';
+        sizeDisplay.textContent = '0MB';
+      }
+
+      // ---------- INIT ----------
+      async function init() {
+        // Theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') {
+          document.body.classList.add('light');
+          themeToggle.textContent = '🌙 Dark';
+        }
+        // Loading screen
+        setTimeout(() => { loadingScreen.classList.add('hidden'); }, 1000);
+        // Camera
+        await startCamera('user');
+        // Event listeners
+        themeToggle.addEventListener('click', toggleTheme);
+        switchCameraBtn.addEventListener('click', switchCamera);
+        startRecordBtn.addEventListener('click', startRecording);
+        pauseRecordBtn.addEventListener('click', pauseRecording);
+        resumeRecordBtn.addEventListener('click', resumeRecording);
+        stopRecordBtn.addEventListener('click', stopRecording);
+        addTextBtn.addEventListener('click', () => {
+          const content = newTextInput.value || 'Text';
+          const newObj = createTextObject(content);
+          textObjects.push(newObj);
+          selectText(newObj.id);
+          renderTextOverlays();
+        });
+        duplicateTextBtn.addEventListener('click', duplicateSelectedText);
+        deleteTextBtn.addEventListener('click', deleteSelectedText);
+        textColorPicker.addEventListener('input', updateSelectedTextProperty);
+        fontFamilySelect.addEventListener('change', updateSelectedTextProperty);
+        fontSizeSlider.addEventListener('input', updateSelectedTextProperty);
+        opacitySlider.addEventListener('input', updateSelectedTextProperty);
+        fontWeightSelect.addEventListener('change', updateSelectedTextProperty);
+        textAlignSelect.addEventListener('change', updateSelectedTextProperty);
+        shadowToggle.addEventListener('click', () => {
+          const obj = textObjects.find(o => o.id === selectedTextId);
+          if (obj) { obj.shadow = !obj.shadow; updateSelectedTextProperty(); }
+        });
+        bgBlurToggle.addEventListener('click', () => {
+          const obj = textObjects.find(o => o.id === selectedTextId);
+          if (obj) { obj.bgBlur = !obj.bgBlur; updateSelectedTextProperty(); }
+        });
+        downloadVideoBtn.addEventListener('click', downloadVideo);
+        deleteVideoBtn.addEventListener('click', deleteVideo);
+        closeModalBtn.addEventListener('click', () => { videoModal.style.display = 'none'; });
+        // Close modal on overlay click
+        videoModal.addEventListener('click', (e) => { if (e.target === videoModal) videoModal.style.display = 'none'; });
+        // Initial render
+        renderTextOverlays();
+        logToConsole('Ứng dụng đã sẵn sàng.');
+      }
+
+      init();
+    })();
+  </script>
 </body>
 </html>
