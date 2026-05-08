@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ProVideo Recorder | DevMode</title>
-  <!-- Không sử dụng bất kỳ framework hay thư viện ngoài -->
+  <title>ProVideo Recorder | DevMode | DuyHoang</title>
   <style>
     /* === CSS RESET & VARIABLES === */
     * {
@@ -30,6 +29,7 @@
       --radius: 16px;
       --radius-sm: 10px;
       --transition: 0.25s cubic-bezier(0.2, 0.9, 0.4, 1);
+      --preview-aspect: 16 / 9; /* Mặc định 16:9 */
     }
     body.light {
       --bg: #f5f7fa;
@@ -95,6 +95,7 @@
       display: flex;
       align-items: center;
       gap: 12px;
+      flex-wrap: wrap;
     }
     .logo {
       font-weight: 700;
@@ -155,10 +156,11 @@
       background: #000;
       box-shadow: var(--shadow), var(--glow);
       border: 1px solid var(--border);
-      aspect-ratio: 16 / 9;
+      aspect-ratio: var(--preview-aspect); /* Sử dụng biến CSS động */
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: aspect-ratio 0.3s ease;
     }
     .video-container {
       position: relative;
@@ -170,6 +172,10 @@
       height: 100%;
       object-fit: cover;
       display: block;
+      transition: transform 0.2s ease;
+    }
+    video#cameraPreview.mirror {
+      transform: scaleX(-1);
     }
     .text-overlay-container {
       position: absolute;
@@ -286,6 +292,12 @@
     .btn.danger { background: transparent; border-color: var(--danger); color: var(--danger); }
     .btn.danger:hover { background: var(--danger); color: #fff; box-shadow: 0 0 18px var(--danger); }
     .btn.small { padding: 4px 10px; font-size: 0.7rem; }
+    .btn.active-btn {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+      box-shadow: 0 0 15px var(--accent);
+    }
     /* === INPUTS === */
     input, select, .slider {
       background: rgba(0,0,0,0.3);
@@ -377,7 +389,47 @@
     /* Responsive */
     @media (max-width: 800px) {
       .main-layout { flex-direction: column; }
-      .preview-section { aspect-ratio: 4/3; }
+      .preview-section { aspect-ratio: auto !important; min-height: 250px; }
+      .sidebar { min-width: 100%; }
+    }
+    /* Toggle switch cho mirror */
+    .toggle-switch {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      margin-top: 6px;
+      font-size: 0.8rem;
+    }
+    .toggle-switch input {
+      display: none;
+    }
+    .slider-toggle {
+      width: 40px;
+      height: 20px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
+      position: relative;
+      transition: background var(--transition);
+      border: 1px solid var(--border);
+    }
+    .slider-toggle::before {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: white;
+      border-radius: 50%;
+      top: 1px;
+      left: 2px;
+      transition: transform var(--transition);
+    }
+    input:checked + .slider-toggle {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    input:checked + .slider-toggle::before {
+      transform: translateX(18px);
     }
   </style>
 </head>
@@ -426,6 +478,28 @@
             <button class="btn" id="resumeRecordBtn" disabled>▶️ Tiếp tục</button>
             <button class="btn danger" id="stopRecordBtn" disabled>⏹️ Dừng</button>
           </div>
+        </div>
+
+        <!-- KHUNG HÌNH & MIRROR PANEL MỚI -->
+        <div class="panel">
+          <h3>🖼️ Khung hình & Gương</h3>
+          <label style="font-size:0.8rem; margin-bottom:2px;">Tỉ lệ khung hình</label>
+          <select id="aspectRatioSelect">
+            <option value="16:9" selected>16:9 (Full ngang)</option>
+            <option value="9:16">9:16 (Full dọc)</option>
+            <option value="1:1">1:1 (Vuông)</option>
+            <option value="3:4">3:4</option>
+            <option value="19:6">19:6 (Siêu rộng)</option>
+            <option value="auto">Tự động (gốc)</option>
+          </select>
+          <div class="toggle-switch" style="margin-top:10px;">
+            <label for="mirrorToggle" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" id="mirrorToggle">
+              <span class="slider-toggle"></span>
+              <span>🪞 Anti lật (Mirror)</span>
+            </label>
+          </div>
+          <small style="display:block; margin-top:4px; color:var(--text-secondary);">Bật để lật ngược camera trước</small>
         </div>
 
         <!-- TEXT OVERLAY PANEL -->
@@ -494,9 +568,6 @@
   <script>
     (function() {
       // ==================== MODULE PATTERN ====================
-      // Toàn bộ ứng dụng được đóng gói trong IIFE để tránh xung đột global
-
-      // ---------- DOM REFS ----------
       const $ = (sel) => document.querySelector(sel);
       const $$ = (sel) => document.querySelectorAll(sel);
 
@@ -515,6 +586,7 @@
       const videoModal = $('#videoModal');
       const reviewVideo = $('#reviewVideo');
       const toastContainer = $('#toastContainer');
+      const previewSection = $('#previewSection');
 
       // Buttons
       const switchCameraBtn = $('#switchCameraBtn');
@@ -537,6 +609,10 @@
       const textAlignSelect = $('#textAlignSelect');
       const shadowToggle = $('#shadowToggle');
       const bgBlurToggle = $('#bgBlurToggle');
+      
+      // Mới: aspect ratio và mirror
+      const aspectRatioSelect = $('#aspectRatioSelect');
+      const mirrorToggle = $('#mirrorToggle');
 
       // ---------- STATE ----------
       let currentStream = null;
@@ -550,9 +626,9 @@
       let currentFps = 0;
       let isRecording = false;
       let isPaused = false;
-      let currentCameraFacing = 'user'; // 'user' front, 'environment' back
+      let currentCameraFacing = 'user';
       let selectedTextId = null;
-      let textObjects = []; // { id, content, x, y, fontSize, color, fontFamily, opacity, fontWeight, textAlign, shadow, bgBlur, rotation, width, height }
+      let textObjects = [];
       let textIdCounter = 0;
       let videoBlobUrl = null;
       let videoBlob = null;
@@ -560,6 +636,10 @@
       let dragOffsetX, dragOffsetY, dragTargetId;
       let isResizing = false, resizeTargetId;
       let isRotating = false, rotateTargetId, rotateStartAngle, rotateCenterX, rotateCenterY;
+      
+      // State mới
+      let currentAspectRatio = '16:9';
+      let isMirrored = false;
 
       // ---------- UTILS ----------
       function logToConsole(msg) {
@@ -584,6 +664,34 @@
         if (bytes < 1024) return bytes + ' B';
         if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
         return (bytes/1048576).toFixed(2) + ' MB';
+      }
+
+      // ---------- ASPECT RATIO HANDLER ----------
+      function applyAspectRatio(ratio) {
+        const root = document.documentElement;
+        if (ratio === 'auto') {
+          previewSection.style.aspectRatio = 'auto';
+          logToConsole('Aspect ratio: auto (gốc)');
+        } else {
+          previewSection.style.aspectRatio = ratio;
+          logToConsole(`Aspect ratio set to ${ratio}`);
+        }
+        // Lưu lại lựa chọn
+        currentAspectRatio = ratio;
+        localStorage.setItem('aspectRatio', ratio);
+      }
+
+      // ---------- MIRROR HANDLER ----------
+      function applyMirror(state) {
+        isMirrored = state;
+        if (state) {
+          cameraPreview.classList.add('mirror');
+          logToConsole('Mirror (anti lật) BẬT');
+        } else {
+          cameraPreview.classList.remove('mirror');
+          logToConsole('Mirror TẮT');
+        }
+        localStorage.setItem('mirror', state ? 'true' : 'false');
       }
 
       // ---------- CAMERA INIT ----------
@@ -620,8 +728,13 @@
           micStatus.textContent = '🎤 Mic hoạt động';
           logToConsole(`Camera started: ${facingMode}`);
           showToast('Camera đã sẵn sàng');
-          // Cập nhật FPS monitoring
           startFpsCounter();
+          // Áp dụng mirror nếu đang bật (thường front camera cần mirror)
+          if (isMirrored) {
+            cameraPreview.classList.add('mirror');
+          } else {
+            cameraPreview.classList.remove('mirror');
+          }
         } catch (err) {
           showToast('Lỗi truy cập camera: ' + err.message, 'error');
           logToConsole('Camera error: ' + err.message);
@@ -681,7 +794,7 @@
             showToast('Quay xong! Video đã sẵn sàng');
             logToConsole(`Recording finished: ${formatBytes(blob.size)}`);
           };
-          mediaRecorder.start(1000); // timeslice 1s
+          mediaRecorder.start(1000);
           recordingStartTime = Date.now();
           isRecording = true;
           recDot.classList.add('active');
@@ -728,7 +841,7 @@
         stopRecordBtn.disabled = !isRecording;
       }
 
-      // ---------- TEXT OVERLAY ENGINE ----------
+      // ---------- TEXT OVERLAY ENGINE (giữ nguyên) ----------
       function createTextObject(content = 'Text') {
         return {
           id: ++textIdCounter,
@@ -773,14 +886,12 @@
             div.style.borderRadius = '8px';
             div.style.padding = '4px 8px';
           }
-          // handles
           const resizeHandle = document.createElement('div');
           resizeHandle.className = 'resize-handle';
           div.appendChild(resizeHandle);
           const rotateHandle = document.createElement('div');
           rotateHandle.className = 'rotate-handle';
           div.appendChild(rotateHandle);
-          // events
           div.addEventListener('mousedown', onTextMouseDown);
           div.addEventListener('touchstart', onTextTouchStart, {passive: false});
           textOverlayContainer.appendChild(div);
@@ -792,7 +903,6 @@
         layerList.innerHTML = textObjects.map((obj, idx) => 
           `<div style="padding:4px; cursor:pointer; background:${obj.id===selectedTextId?'var(--accent)':'transparent'}; color:${obj.id===selectedTextId?'#000':'inherit'}; border-radius:6px;" data-id="${obj.id}">Layer ${idx+1}: ${obj.content.substring(0,15)}</div>`
         ).join('');
-        // add click to select
         layerList.querySelectorAll('div').forEach(div => {
           div.addEventListener('click', (e) => {
             const id = parseInt(div.dataset.id);
@@ -847,7 +957,6 @@
         renderTextOverlays();
       }
 
-      // Drag & Drop handlers
       function getEventPos(e, isTouch) {
         if (isTouch) {
           const touch = e.touches[0] || e.changedTouches[0];
@@ -861,7 +970,6 @@
         const div = e.currentTarget;
         const id = parseInt(div.id.replace('text-',''));
         selectText(id);
-        // Kiểm tra nếu click vào handle resize hoặc rotate
         if (e.target.classList.contains('resize-handle')) {
           startResize(id, e.clientX, e.clientY);
           return;
@@ -1011,17 +1119,39 @@
 
       // ---------- INIT ----------
       async function init() {
-        // Theme
+        // Khôi phục theme
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'light') {
           document.body.classList.add('light');
           themeToggle.textContent = '🌙 Dark';
         }
+        
+        // Khôi phục aspect ratio và mirror
+        const savedAspect = localStorage.getItem('aspectRatio') || '16:9';
+        currentAspectRatio = savedAspect;
+        aspectRatioSelect.value = savedAspect;
+        applyAspectRatio(savedAspect);
+        
+        const savedMirror = localStorage.getItem('mirror') === 'true';
+        isMirrored = savedMirror;
+        mirrorToggle.checked = savedMirror;
+        applyMirror(savedMirror);
+        
         // Loading screen
         setTimeout(() => { loadingScreen.classList.add('hidden'); }, 1000);
+        
         // Camera
         await startCamera('user');
-        // Event listeners
+        
+        // Event listeners cho aspect ratio và mirror
+        aspectRatioSelect.addEventListener('change', (e) => {
+          applyAspectRatio(e.target.value);
+        });
+        mirrorToggle.addEventListener('change', (e) => {
+          applyMirror(e.target.checked);
+        });
+        
+        // Các listener khác
         themeToggle.addEventListener('click', toggleTheme);
         switchCameraBtn.addEventListener('click', switchCamera);
         startRecordBtn.addEventListener('click', startRecording);
@@ -1054,11 +1184,10 @@
         downloadVideoBtn.addEventListener('click', downloadVideo);
         deleteVideoBtn.addEventListener('click', deleteVideo);
         closeModalBtn.addEventListener('click', () => { videoModal.style.display = 'none'; });
-        // Close modal on overlay click
         videoModal.addEventListener('click', (e) => { if (e.target === videoModal) videoModal.style.display = 'none'; });
-        // Initial render
+        
         renderTextOverlays();
-        logToConsole('Ứng dụng đã sẵn sàng.');
+        logToConsole('Ứng dụng đã sẵn sàng với đầy đủ tính năng.');
       }
 
       init();
