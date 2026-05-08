@@ -1,724 +1,949 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-  <title>🎥 Video Sạch + Overlay Đọc</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>🎥 Video Sạch + Overlay Đọc</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-    body {
-      background: #0b0f15;
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 16px;
-      color: #eef2fb;
-    }
+        body {
+            background: #0b0f15;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 16px;
+            color: #eef2fb;
+        }
 
-    .app {
-      max-width: 1000px;
-      width: 100%;
-      background: rgba(18, 25, 35, 0.8);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(74, 144, 226, 0.2);
-      border-radius: 36px;
-      padding: 24px 20px 28px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,255,255,0.05) inset;
-    }
+        .app {
+            max-width: 1000px;
+            width: 100%;
+            background: rgba(18, 25, 35, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(74, 144, 226, 0.2);
+            border-radius: 36px;
+            padding: 24px 20px 28px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 255, 255, 0.05) inset;
+        }
 
-    h1 {
-      font-weight: 500;
-      font-size: 1.8rem;
-      letter-spacing: -0.01em;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 18px;
-      padding-left: 8px;
-    }
+        h1 {
+            font-weight: 500;
+            font-size: 1.8rem;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 18px;
+            padding-left: 8px;
+        }
 
-    h1 span {
-      background: #1e90ff;
-      font-size: 0.9rem;
-      padding: 2px 12px;
-      border-radius: 40px;
-      color: white;
-      font-weight: 400;
-    }
+        h1 span {
+            background: #1e90ff;
+            font-size: 0.9rem;
+            padding: 2px 12px;
+            border-radius: 40px;
+            color: white;
+            font-weight: 400;
+        }
 
-    /* Video container */
-    .video-stage {
-      position: relative;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      margin-bottom: 16px;
-    }
+        /* Video container */
+        .video-stage {
+            position: relative;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
 
-    .video-wrapper {
-      position: relative;
-      width: 100%;
-      max-width: 100%;
-      border-radius: 24px;
-      overflow: hidden;
-      background: #000;
-      box-shadow: 0 0 0 2px rgba(30,144,255,0.2), 0 18px 30px -8px black;
-      border: 1px solid #2a3a50;
-      transition: aspect-ratio 0.2s ease;
-    }
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            border-radius: 24px;
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 0 0 2px rgba(30, 144, 255, 0.2), 0 18px 30px -8px black;
+            border: 1px solid #2a3a50;
+            transition: aspect-ratio 0.2s ease;
+        }
 
-    /* aspect ratio classes */
-    .video-wrapper.aspect-auto {
-      aspect-ratio: auto;
-    }
-    .video-wrapper.aspect-16-9 {
-      aspect-ratio: 16 / 9;
-    }
-    .video-wrapper.aspect-9-16 {
-      aspect-ratio: 9 / 16;
-    }
+        /* aspect ratio classes */
+        .video-wrapper.aspect-auto {
+            aspect-ratio: auto;
+        }
+        .video-wrapper.aspect-16-9 {
+            aspect-ratio: 16 / 9;
+        }
+        .video-wrapper.aspect-9-16 {
+            aspect-ratio: 9 / 16;
+        }
+        .video-wrapper.aspect-1-1 {
+            aspect-ratio: 1 / 1;
+        }
+        .video-wrapper.aspect-3-4 {
+            aspect-ratio: 3 / 4;
+        }
+        .video-wrapper.aspect-19-6 {
+            aspect-ratio: 19 / 6;
+        }
 
-    video {
-      width: 100%;
-      height: 100%;
-      display: block;
-      object-fit: cover;
-      background: #0a0f14;
-    }
+        video {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+            background: #0a0f14;
+            transition: transform 0.2s ease;
+        }
 
-    /* Overlay text - chỉ hiển thị, không ghi vào video */
-    .overlay-text {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: white;
-      font-weight: 700;
-      text-shadow: 2px 2px 10px rgba(0,0,0,0.8), 0 0 20px #00000080;
-      white-space: pre-wrap;
-      text-align: center;
-      pointer-events: none;  /* để kéo thả bắt từ handle riêng */
-      line-height: 1.3;
-      z-index: 20;
-      user-select: none;
-      padding: 6px 12px;
-      border-radius: 12px;
-      background: transparent;
-      backdrop-filter: none;
-      max-width: 90%;
-    }
+        video.mirrored {
+            transform: scaleX(-1);
+        }
 
-    /* handle để kéo thả */
-    .drag-handle {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 25;
-    }
+        /* Khung hiển thị tỷ lệ đã chọn (guide frame) */
+        .guide-frame {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            border: 2px dashed rgba(255, 255, 255, 0.45);
+            border-radius: 24px;
+            display: none;
+            transition: all 0.2s ease;
+        }
 
-    .overlay-text.draggable-active {
-      pointer-events: auto;
-      cursor: grab;
-    }
-    .overlay-text.dragging {
-      cursor: grabbing;
-      opacity: 0.9;
-    }
+        .guide-frame.visible {
+            display: block;
+        }
 
-    /* controls */
-    .control-panel {
-      margin-top: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
+        /* Overlay text - chỉ hiển thị, không ghi vào video */
+        .overlay-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: 700;
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.8), 0 0 20px #00000080;
+            white-space: pre-wrap;
+            text-align: center;
+            pointer-events: none;
+            line-height: 1.3;
+            z-index: 20;
+            user-select: none;
+            padding: 6px 12px;
+            border-radius: 12px;
+            background: transparent;
+            backdrop-filter: none;
+            max-width: 90%;
+        }
 
-    .aspect-row {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
+        /* handle để kéo thả */
+        .drag-handle {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 25;
+        }
 
-    .badge-group {
-      display: flex;
-      background: #1e2a36;
-      border-radius: 60px;
-      padding: 4px;
-      border: 1px solid #304a60;
-    }
+        .overlay-text.draggable-active {
+            pointer-events: auto;
+            cursor: grab;
+        }
+        .overlay-text.dragging {
+            cursor: grabbing;
+            opacity: 0.9;
+        }
 
-    .aspect-btn {
-      background: transparent;
-      border: none;
-      color: #b0c7e0;
-      padding: 10px 18px;
-      border-radius: 40px;
-      font-weight: 500;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: all 0.15s;
-      backdrop-filter: blur(4px);
-    }
+        /* controls */
+        .control-panel {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
 
-    .aspect-btn.active {
-      background: #1e90ff;
-      color: white;
-      box-shadow: 0 4px 12px #1e90ff40;
-    }
+        .aspect-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
 
-    .btn {
-      background: #1f2e3f;
-      border: 1px solid #3a526b;
-      color: #f0f6ff;
-      padding: 10px 20px;
-      border-radius: 50px;
-      font-weight: 500;
-      font-size: 1rem;
-      cursor: pointer;
-      backdrop-filter: blur(8px);
-      transition: 0.15s;
-      box-shadow: 0 6px 12px #00000020;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
+        .badge-group {
+            display: flex;
+            background: #1e2a36;
+            border-radius: 60px;
+            padding: 4px;
+            border: 1px solid #304a60;
+            flex-wrap: wrap;
+        }
 
-    .btn-primary {
-      background: #1e90ff;
-      border-color: #7ab9ff;
-      color: white;
-      box-shadow: 0 6px 18px #1e90ff60;
-    }
+        .aspect-btn {
+            background: transparent;
+            border: none;
+            color: #b0c7e0;
+            padding: 10px 14px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            backdrop-filter: blur(4px);
+            white-space: nowrap;
+        }
 
-    .btn-danger {
-      background: #d32f2f;
-      border-color: #ff8a8a;
-      color: white;
-    }
+        .aspect-btn.active {
+            background: #1e90ff;
+            color: white;
+            box-shadow: 0 4px 12px #1e90ff40;
+        }
 
-    .btn:disabled {
-      opacity: 0.5;
-      pointer-events: none;
-      filter: grayscale(0.6);
-    }
+        .btn {
+            background: #1f2e3f;
+            border: 1px solid #3a526b;
+            color: #f0f6ff;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 500;
+            font-size: 1rem;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            transition: 0.15s;
+            box-shadow: 0 6px 12px #00000020;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
 
-    .text-editor {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 16px;
-      background: #101a24b0;
-      padding: 12px 18px;
-      border-radius: 48px;
-      backdrop-filter: blur(8px);
-      border: 1px solid #2e4b6b;
-    }
+        .btn-primary {
+            background: #1e90ff;
+            border-color: #7ab9ff;
+            color: white;
+            box-shadow: 0 6px 18px #1e90ff60;
+        }
 
-    input, .text-editor input {
-      background: #1d2b39;
-      border: 1px solid #3c6080;
-      padding: 10px 16px;
-      border-radius: 40px;
-      color: white;
-      font-size: 1rem;
-      flex: 2 1 200px;
-    }
+        .btn-danger {
+            background: #d32f2f;
+            border-color: #ff8a8a;
+            color: white;
+        }
 
-    .slider-block {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+        .btn-success {
+            background: #2e7d32;
+            border-color: #66bb6a;
+            color: white;
+        }
 
-    .timer-badge {
-      font-family: monospace;
-      background: #0a121c;
-      padding: 8px 20px;
-      border-radius: 40px;
-      border: 1px solid #2e6c9e;
-      font-size: 1.4rem;
-      letter-spacing: 2px;
-    }
+        .btn-accent {
+            background: #f57c00;
+            border-color: #ffb74d;
+            color: white;
+        }
 
-    .status-led {
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      border-radius: 20px;
-      background: #555;
-      margin-right: 6px;
-    }
-    .recording .status-led {
-      background: #ff3b3b;
-      box-shadow: 0 0 12px red;
-      animation: pulse 1.2s infinite;
-    }
-    @keyframes pulse { 0%{opacity:1} 50%{opacity:0.5} 100%{opacity:1} }
+        .btn:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            filter: grayscale(0.6);
+        }
 
-    .flex-row {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 14px;
-    }
+        .text-editor {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+            background: #101a24b0;
+            padding: 12px 18px;
+            border-radius: 48px;
+            backdrop-filter: blur(8px);
+            border: 1px solid #2e4b6b;
+        }
 
-    .error-message {
-      color: #ffa098;
-      background: #3a1e1eb0;
-      padding: 10px 20px;
-      border-radius: 40px;
-      backdrop-filter: blur(4px);
-    }
+        input,
+        .text-editor input {
+            background: #1d2b39;
+            border: 1px solid #3c6080;
+            padding: 10px 16px;
+            border-radius: 40px;
+            color: white;
+            font-size: 1rem;
+            flex: 2 1 200px;
+        }
 
-    .hide-overlay .overlay-text {
-      display: none !important;
-    }
+        .slider-block {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-    /* responsive */
-    @media (max-width: 600px) {
-      body { padding: 8px; }
-      .app { padding: 16px 12px; }
-      .btn { padding: 10px 16px; }
-    }
-  </style>
+        .timer-badge {
+            font-family: monospace;
+            background: #0a121c;
+            padding: 8px 20px;
+            border-radius: 40px;
+            border: 1px solid #2e6c9e;
+            font-size: 1.4rem;
+            letter-spacing: 2px;
+        }
+
+        .status-led {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 20px;
+            background: #555;
+            margin-right: 6px;
+        }
+        .recording .status-led {
+            background: #ff3b3b;
+            box-shadow: 0 0 12px red;
+            animation: pulse 1.2s infinite;
+        }
+        @keyframes pulse {
+            0% {
+                opacity: 1
+            }
+            50% {
+                opacity: 0.5
+            }
+            100% {
+                opacity: 1
+            }
+        }
+
+        .flex-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .error-message {
+            color: #ffa098;
+            background: #3a1e1eb0;
+            padding: 10px 20px;
+            border-radius: 40px;
+            backdrop-filter: blur(4px);
+        }
+
+        .hide-overlay .overlay-text {
+            display: none !important;
+        }
+
+        /* Modal xem lại video */
+        .preview-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .preview-modal.open {
+            display: flex;
+        }
+        .preview-modal video {
+            max-width: 90vw;
+            max-height: 70vh;
+            border-radius: 20px;
+            background: #000;
+            box-shadow: 0 0 30px #000;
+        }
+        .preview-modal .btn {
+            font-size: 1.2rem;
+            padding: 12px 28px;
+        }
+
+        /* responsive */
+        @media (max-width: 600px) {
+            body {
+                padding: 8px;
+            }
+            .app {
+                padding: 16px 12px;
+            }
+            .btn {
+                padding: 10px 16px;
+            }
+            .badge-group {
+                gap: 2px;
+            }
+            .aspect-btn {
+                padding: 8px 10px;
+                font-size: 0.75rem;
+            }
+        }
+    </style>
 </head>
 <body>
-<div class="app">
-  <h1>📹 Record Clean <span>overlay chỉ để đọc</span></h1>
+    <div class="app">
+        <h1>📹 Record Clean <span>overlay chỉ để đọc</span></h1>
 
-  <!-- video stage -->
-  <div class="video-stage">
-    <div class="video-wrapper aspect-auto" id="videoWrapper">
-      <video id="liveVideo" autoplay playsinline muted></video>
-      
-      <!-- Overlay text: KHÔNG bị ghi vào video -->
-      <div id="overlayText" class="overlay-text" style="font-size: 48px; color: #ffffff; opacity: 0.95;">
-        Đọc dòng này ✨
-      </div>
+        <!-- video stage -->
+        <div class="video-stage">
+            <div class="video-wrapper aspect-auto" id="videoWrapper">
+                <video id="liveVideo" autoplay playsinline muted></video>
+
+                <!-- Khung hiển thị tỷ lệ đã chọn (guide frame) -->
+                <div class="guide-frame" id="guideFrame"></div>
+
+                <!-- Overlay text: KHÔNG bị ghi vào video -->
+                <div id="overlayText" class="overlay-text" style="font-size: 48px; color: #ffffff; opacity: 0.95;">
+                    Đọc dòng này ✨
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal xem lại video -->
+        <div class="preview-modal" id="previewModal">
+            <video id="previewVideo" controls playsinline></video>
+            <div class="flex-row" style="justify-content:center;">
+                <button class="btn btn-danger" id="closePreviewBtn">✕ Đóng</button>
+                <button class="btn btn-primary" id="downloadFromPreviewBtn">⬇ Tải video này</button>
+            </div>
+        </div>
+
+        <!-- Điều khiển khung hình & start camera -->
+        <div class="aspect-row">
+            <div class="badge-group" id="aspectBtnGroup">
+                <button class="aspect-btn active" data-aspect="auto">📐 Full</button>
+                <button class="aspect-btn" data-aspect="16-9">📺 16:9</button>
+                <button class="aspect-btn" data-aspect="9-16">📱 9:16</button>
+                <button class="aspect-btn" data-aspect="1-1">⬛ 1:1</button>
+                <button class="aspect-btn" data-aspect="3-4">📲 3:4</button>
+                <button class="aspect-btn" data-aspect="19-6">🎬 19:6</button>
+            </div>
+            <button class="btn btn-accent" id="mirrorBtn">🪞 Gương</button>
+            <button class="btn" id="startCameraBtn">▶ Bắt đầu camera</button>
+            <button class="btn" id="toggleOverlayBtn">👁 Ẩn overlay</button>
+        </div>
+
+        <!-- Text editor & style -->
+        <div class="text-editor">
+            <input type="text" id="overlayInput" placeholder="Nhập text..." value="Đọc dòng này ✨" style="min-width:180px;">
+            <div class="slider-block">
+                <label>🔤 Size</label>
+                <input type="range" id="fontSizeSlider" min="6" max="120" value="48" step="1">
+            </div>
+            <input type="color" id="colorPicker" value="#ffffff">
+            <div class="slider-block">
+                <label>💧 Opacity</label>
+                <input type="range" id="opacitySlider" min="0.1" max="1" step="0.05" value="0.95">
+            </div>
+        </div>
+
+        <!-- Recording controls -->
+        <div class="flex-row">
+            <button class="btn btn-primary" id="startRecordBtn" disabled>⏺ Bắt đầu quay</button>
+            <button class="btn btn-danger" id="stopRecordBtn" disabled>⏹ Dừng quay</button>
+            <button class="btn btn-success" id="previewRecordedBtn" disabled>👁 Xem lại</button>
+            <div class="timer-badge" id="timerDisplay">00:00</div>
+            <div id="recordStatus" style="display:flex;align-items:center;">
+                <span class="status-led"></span> <span id="statusText">Sẵn sàng</span>
+            </div>
+        </div>
+
+        <!-- Download & lỗi -->
+        <div class="flex-row">
+            <button class="btn" id="downloadBtn" disabled>⬇ Tải video (MP4)</button>
+            <button class="btn" id="resetSettingsBtn">🔄 Reset</button>
+        </div>
+        <div id="errorBox" class="error-message" style="display:none;"></div>
+        <p style="opacity:0.7; margin-top:12px; font-size:0.85rem;">✨ Overlay chỉ hiện trên màn hình – video xuất ra không chứa chữ.</p>
     </div>
-  </div>
 
-  <!-- Điều khiển khung hình & start camera -->
-  <div class="aspect-row">
-    <div class="badge-group">
-      <button class="aspect-btn active" data-aspect="auto">📐 Full</button>
-      <button class="aspect-btn" data-aspect="16-9">📺 16:9</button>
-      <button class="aspect-btn" data-aspect="9-16">📱 9:16</button>
-    </div>
-    <button class="btn" id="startCameraBtn">▶ Bắt đầu camera</button>
-    <button class="btn" id="toggleOverlayBtn">👁 Ẩn overlay</button>
-  </div>
+    <script>
+        (function() {
+            "use strict";
 
-  <!-- Text editor & style -->
-  <div class="text-editor">
-    <input type="text" id="overlayInput" placeholder="Nhập text..." value="Đọc dòng này ✨" style="min-width:180px;">
-    <div class="slider-block">
-      <label>🔤 Size</label>
-      <input type="range" id="fontSizeSlider" min="16" max="120" value="48" step="2">
-    </div>
-    <input type="color" id="colorPicker" value="#ffffff">
-    <div class="slider-block">
-      <label>💧 Opacity</label>
-      <input type="range" id="opacitySlider" min="0.1" max="1" step="0.05" value="0.95">
-    </div>
-  </div>
+            // DOM elements
+            const video = document.getElementById('liveVideo');
+            const wrapper = document.getElementById('videoWrapper');
+            const guideFrame = document.getElementById('guideFrame');
+            const overlay = document.getElementById('overlayText');
+            const startCamBtn = document.getElementById('startCameraBtn');
+            const toggleOverlayBtn = document.getElementById('toggleOverlayBtn');
+            const overlayInput = document.getElementById('overlayInput');
+            const fontSizeSlider = document.getElementById('fontSizeSlider');
+            const colorPicker = document.getElementById('colorPicker');
+            const opacitySlider = document.getElementById('opacitySlider');
+            const startRecordBtn = document.getElementById('startRecordBtn');
+            const stopRecordBtn = document.getElementById('stopRecordBtn');
+            const previewRecordedBtn = document.getElementById('previewRecordedBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const timerDisplay = document.getElementById('timerDisplay');
+            const statusText = document.getElementById('statusText');
+            const recordStatusDiv = document.getElementById('recordStatus');
+            const errorBox = document.getElementById('errorBox');
+            const resetBtn = document.getElementById('resetSettingsBtn');
+            const mirrorBtn = document.getElementById('mirrorBtn');
+            const previewModal = document.getElementById('previewModal');
+            const previewVideo = document.getElementById('previewVideo');
+            const closePreviewBtn = document.getElementById('closePreviewBtn');
+            const downloadFromPreviewBtn = document.getElementById('downloadFromPreviewBtn');
 
-  <!-- Recording controls -->
-  <div class="flex-row">
-    <button class="btn btn-primary" id="startRecordBtn" disabled>⏺ Bắt đầu quay</button>
-    <button class="btn btn-danger" id="stopRecordBtn" disabled>⏹ Dừng quay</button>
-    <div class="timer-badge" id="timerDisplay">00:00</div>
-    <div id="recordStatus" style="display:flex;align-items:center;">
-      <span class="status-led"></span> <span id="statusText">Sẵn sàng</span>
-    </div>
-  </div>
+            // state
+            let mediaStream = null;
+            let mediaRecorder = null;
+            let recordedChunks = [];
+            let recordingStartTime = null;
+            let timerInterval = null;
+            let isRecording = false;
+            let currentAspect = 'auto'; // auto, 16-9, 9-16, 1-1, 3-4, 19-6
+            let overlayVisible = true;
+            let isMirrored = false;
+            let lastRecordedBlob = null;
+            let lastRecordedMime = 'video/webm';
 
-  <!-- Download & lỗi -->
-  <div class="flex-row">
-    <button class="btn" id="downloadBtn" disabled>⬇ Tải video (MP4)</button>
-    <button class="btn" id="resetSettingsBtn">🔄 Reset</button>
-  </div>
-  <div id="errorBox" class="error-message" style="display:none;"></div>
-  <p style="opacity:0.7; margin-top:12px; font-size:0.85rem;">✨ Overlay chỉ hiện trên màn hình – video xuất ra không chứa chữ.</p>
-</div>
+            // drag state cho overlay
+            let isDragging = false;
+            let dragOffsetX = 0,
+                dragOffsetY = 0;
+            let overlayInitialTop, overlayInitialLeft;
+            const overlayDefaultPos = { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
 
-<script>
-  (function(){
-    "use strict";
+            // localStorage keys
+            const STORAGE_TEXT = 'vc_overlay_text';
+            const STORAGE_ASPECT = 'vc_aspect';
+            const STORAGE_MIRROR = 'vc_mirror';
 
-    // DOM elements
-    const video = document.getElementById('liveVideo');
-    const wrapper = document.getElementById('videoWrapper');
-    const overlay = document.getElementById('overlayText');
-    const startCamBtn = document.getElementById('startCameraBtn');
-    const toggleOverlayBtn = document.getElementById('toggleOverlayBtn');
-    const overlayInput = document.getElementById('overlayInput');
-    const fontSizeSlider = document.getElementById('fontSizeSlider');
-    const colorPicker = document.getElementById('colorPicker');
-    const opacitySlider = document.getElementById('opacitySlider');
-    const startRecordBtn = document.getElementById('startRecordBtn');
-    const stopRecordBtn = document.getElementById('stopRecordBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const timerDisplay = document.getElementById('timerDisplay');
-    const statusText = document.getElementById('statusText');
-    const recordStatusDiv = document.getElementById('recordStatus');
-    const errorBox = document.getElementById('errorBox');
-    const resetBtn = document.getElementById('resetSettingsBtn');
+            // --- Khởi tạo localStorage ---
+            function loadSettings() {
+                const savedText = localStorage.getItem(STORAGE_TEXT);
+                if (savedText) {
+                    overlayInput.value = savedText;
+                    overlay.textContent = savedText;
+                }
+                const savedAspect = localStorage.getItem(STORAGE_ASPECT);
+                if (savedAspect && ['auto', '16-9', '9-16', '1-1', '3-4', '19-6'].includes(savedAspect)) {
+                    setAspect(savedAspect);
+                }
+                const savedMirror = localStorage.getItem(STORAGE_MIRROR);
+                if (savedMirror === 'true') {
+                    setMirror(true);
+                }
+            }
 
-    // state
-    let mediaStream = null;
-    let mediaRecorder = null;
-    let recordedChunks = [];
-    let recordingStartTime = null;
-    let timerInterval = null;
-    let isRecording = false;
-    let currentAspect = 'auto'; // auto, 16-9, 9-16
-    let overlayVisible = true;
+            function saveTextToStorage(text) {
+                localStorage.setItem(STORAGE_TEXT, text);
+            }
 
-    // drag state cho overlay
-    let isDragging = false;
-    let dragOffsetX = 0, dragOffsetY = 0;
-    let overlayInitialTop, overlayInitialLeft;
-    const overlayDefaultPos = { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+            function saveAspectToStorage(aspect) {
+                localStorage.setItem(STORAGE_ASPECT, aspect);
+            }
 
-    // localStorage keys
-    const STORAGE_TEXT = 'vc_overlay_text';
-    const STORAGE_ASPECT = 'vc_aspect';
+            function saveMirrorToStorage(mirror) {
+                localStorage.setItem(STORAGE_MIRROR, mirror ? 'true' : 'false');
+            }
 
-    // --- Khởi tạo localStorage ---
-    function loadSettings() {
-      const savedText = localStorage.getItem(STORAGE_TEXT);
-      if (savedText) {
-        overlayInput.value = savedText;
-        overlay.textContent = savedText;
-      }
-      const savedAspect = localStorage.getItem(STORAGE_ASPECT);
-      if (savedAspect && ['auto','16-9','9-16'].includes(savedAspect)) {
-        setAspect(savedAspect);
-      }
-    }
-    function saveTextToStorage(text) {
-      localStorage.setItem(STORAGE_TEXT, text);
-    }
-    function saveAspectToStorage(aspect) {
-      localStorage.setItem(STORAGE_ASPECT, aspect);
-    }
+            // set aspect & update class
+            function setAspect(aspect) {
+                currentAspect = aspect;
+                wrapper.className = 'video-wrapper';
+                if (aspect === '16-9') wrapper.classList.add('aspect-16-9');
+                else if (aspect === '9-16') wrapper.classList.add('aspect-9-16');
+                else if (aspect === '1-1') wrapper.classList.add('aspect-1-1');
+                else if (aspect === '3-4') wrapper.classList.add('aspect-3-4');
+                else if (aspect === '19-6') wrapper.classList.add('aspect-19-6');
+                else wrapper.classList.add('aspect-auto');
 
-    // set aspect & update class
-    function setAspect(aspect) {
-      currentAspect = aspect;
-      wrapper.className = 'video-wrapper';
-      if (aspect === '16-9') wrapper.classList.add('aspect-16-9');
-      else if (aspect === '9-16') wrapper.classList.add('aspect-9-16');
-      else wrapper.classList.add('aspect-auto');
-      
-      document.querySelectorAll('.aspect-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if(btn.dataset.aspect === aspect) btn.classList.add('active');
-      });
-      saveAspectToStorage(aspect);
-    }
+                document.querySelectorAll('.aspect-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.aspect === aspect) btn.classList.add('active');
+                });
 
-    // hiển thị lỗi
-    function showError(msg) {
-      errorBox.style.display = 'block';
-      errorBox.textContent = '⚠️ ' + msg;
-    }
-    function clearError() {
-      errorBox.style.display = 'none';
-    }
+                // Hiển thị guide frame khi aspect không phải auto
+                if (aspect !== 'auto') {
+                    guideFrame.classList.add('visible');
+                } else {
+                    guideFrame.classList.remove('visible');
+                }
 
-    // format time mm:ss
-    function formatTime(seconds) {
-      const m = Math.floor(seconds / 60).toString().padStart(2,'0');
-      const s = Math.floor(seconds % 60).toString().padStart(2,'0');
-      return `${m}:${s}`;
-    }
+                saveAspectToStorage(aspect);
+            }
 
-    // dừng stream cũ
-    function stopMediaTracks() {
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-        mediaStream = null;
-      }
-      video.srcObject = null;
-    }
+            // Mirror toggle
+            function setMirror(mirror) {
+                isMirrored = mirror;
+                if (mirror) {
+                    video.classList.add('mirrored');
+                    mirrorBtn.classList.add('active');
+                    mirrorBtn.style.background = '#f57c00';
+                    mirrorBtn.style.color = 'white';
+                } else {
+                    video.classList.remove('mirrored');
+                    mirrorBtn.classList.remove('active');
+                    mirrorBtn.style.background = '';
+                    mirrorBtn.style.color = '';
+                }
+                saveMirrorToStorage(mirror);
+            }
 
-    // Bắt đầu camera (chỉ khi bấm nút)
-    async function startCamera() {
-      clearError();
-      try {
-        stopMediaTracks(); 
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        mediaStream = stream;
-        video.srcObject = stream;
-        await video.play();
-        
-        startRecordBtn.disabled = false;
-        statusText.textContent = 'Camera sẵn sàng';
-        recordStatusDiv.classList.remove('recording');
-        showError(''); // clear
-      } catch (err) {
-        console.error(err);
-        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          showError('Bạn đã từ chối quyền truy cập camera/mic. Hãy cấp quyền và thử lại.');
-        } else if (err.name === 'NotFoundError') {
-          showError('Không tìm thấy camera hoặc microphone.');
-        } else {
-          showError('Lỗi truy cập: ' + err.message);
-        }
-        startRecordBtn.disabled = true;
-        stopRecordBtn.disabled = true;
-        statusText.textContent = 'Lỗi quyền';
-      }
-    }
+            function toggleMirror() {
+                setMirror(!isMirrored);
+            }
 
-    // Bắt đầu quay (chỉ ghi stream gốc)
-    function startRecording() {
-      if (!mediaStream) {
-        showError('Chưa có camera, vui lòng bấm "Bắt đầu camera"');
-        return;
-      }
-      recordedChunks = [];
-      
-      // Ưu tiên MP4 (H.264) cho iPhone
-      let mimeType = '';
-      const mp4Supported = MediaRecorder.isTypeSupported('video/mp4');
-      if (mp4Supported) {
-        mimeType = 'video/mp4';
-      } else {
-        mimeType = 'video/webm;codecs=vp8,opus'; // fallback WebM
-      }
-      
-      try {
-        mediaRecorder = new MediaRecorder(mediaStream, { mimeType: mimeType || undefined });
-      } catch(e) {
-        mediaRecorder = new MediaRecorder(mediaStream);
-      }
+            // hiển thị lỗi
+            function showError(msg) {
+                errorBox.style.display = 'block';
+                errorBox.textContent = '⚠️ ' + msg;
+            }
 
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) recordedChunks.push(e.data);
-      };
-      
-      mediaRecorder.onstart = () => {
-        isRecording = true;
-        recordingStartTime = Date.now();
-        startRecordBtn.disabled = true;
-        stopRecordBtn.disabled = false;
-        downloadBtn.disabled = true;
-        statusText.textContent = '🔴 Đang quay';
-        recordStatusDiv.classList.add('recording');
-        timerInterval = setInterval(() => {
-          if (!recordingStartTime) return;
-          const elapsed = (Date.now() - recordingStartTime) / 1000;
-          timerDisplay.textContent = formatTime(elapsed);
-        }, 200);
-      };
+            function clearError() {
+                errorBox.style.display = 'none';
+            }
 
-      mediaRecorder.onstop = () => {
-        isRecording = false;
-        clearInterval(timerInterval);
-        timerInterval = null;
-        startRecordBtn.disabled = false;
-        stopRecordBtn.disabled = true;
-        statusText.textContent = 'Đã dừng';
-        recordStatusDiv.classList.remove('recording');
-        
-        if (recordedChunks.length) {
-          const mime = mediaRecorder.mimeType || 'video/webm';
-          const blob = new Blob(recordedChunks, { type: mime });
-          const url = URL.createObjectURL(blob);
-          downloadBtn.disabled = false;
-          downloadBtn.onclick = () => {
-            const a = document.createElement('a');
-            const timestamp = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-            // cố gắng dùng .mp4 nếu là mp4, không thì .webm
-            let ext = mime.includes('mp4') ? 'mp4' : 'webm';
-            a.href = url;
-            a.download = `video_record_${timestamp}.${ext}`;
-            a.click();
-          };
-        } else {
-          showError('Không có dữ liệu video');
-        }
-      };
+            // format time mm:ss
+            function formatTime(seconds) {
+                const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+                return `${m}:${s}`;
+            }
 
-      mediaRecorder.start(1000); // timeslice 1s
-    }
+            // dừng stream cũ
+            function stopMediaTracks() {
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(track => track.stop());
+                    mediaStream = null;
+                }
+                video.srcObject = null;
+            }
 
-    function stopRecording() {
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        mediaRecorder.stop();
-      }
-    }
+            // Bắt đầu camera (chỉ khi bấm nút)
+            async function startCamera() {
+                clearError();
+                try {
+                    stopMediaTracks();
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    mediaStream = stream;
+                    video.srcObject = stream;
+                    await video.play();
 
-    // Reset overlay vị trí về giữa
-    function resetOverlayPosition() {
-      overlay.style.top = overlayDefaultPos.top;
-      overlay.style.left = overlayDefaultPos.left;
-      overlay.style.transform = overlayDefaultPos.transform;
-    }
+                    startRecordBtn.disabled = false;
+                    statusText.textContent = 'Camera sẵn sàng';
+                    recordStatusDiv.classList.remove('recording');
+                    showError(''); // clear
+                } catch (err) {
+                    console.error(err);
+                    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                        showError('Bạn đã từ chối quyền truy cập camera/mic. Hãy cấp quyền và thử lại.');
+                    } else if (err.name === 'NotFoundError') {
+                        showError('Không tìm thấy camera hoặc microphone.');
+                    } else {
+                        showError('Lỗi truy cập: ' + err.message);
+                    }
+                    startRecordBtn.disabled = true;
+                    stopRecordBtn.disabled = true;
+                    statusText.textContent = 'Lỗi quyền';
+                }
+            }
 
-    // --- Drag & Drop overlay ---
-    function makeDraggable(el) {
-      el.addEventListener('mousedown', (e) => {
-        if (e.button !== 0) return;
-        e.preventDefault();
-        // lấy vị trí hiện tại
-        const rect = el.getBoundingClientRect();
-        const wrapperRect = wrapper.getBoundingClientRect();
-        
-        // tính offset từ chuột đến góc phần tử
-        const offsetX = e.clientX - rect.left;
-        const offsetY = e.clientY - rect.top;
-        
-        isDragging = true;
-        el.classList.add('dragging');
-        el.style.cursor = 'grabbing';
-        el.style.pointerEvents = 'auto';
-        
-        function onMouseMove(moveEvent) {
-          if (!isDragging) return;
-          moveEvent.preventDefault();
-          
-          let x = moveEvent.clientX - offsetX;
-          let y = moveEvent.clientY - offsetY;
-          
-          // giới hạn trong wrapper (tương đối)
-          const wrapRect = wrapper.getBoundingClientRect();
-          const elRect = el.getBoundingClientRect();
-          
-          // tính % dựa trên wrapper
-          const leftPercent = ((x - wrapRect.left) / wrapRect.width) * 100;
-          const topPercent = ((y - wrapRect.top) / wrapRect.height) * 100;
-          
-          // clamp nhẹ
-          const clampLeft = Math.min(100 - (elRect.width/wrapRect.width)*100, Math.max(0, leftPercent));
-          const clampTop = Math.min(100 - (elRect.height/wrapRect.height)*100, Math.max(0, topPercent));
-          
-          el.style.left = clampLeft + '%';
-          el.style.top = clampTop + '%';
-          el.style.transform = 'none'; // bỏ translate
-        }
-        
-        function onMouseUp() {
-          isDragging = false;
-          el.classList.remove('dragging');
-          el.style.cursor = 'grab';
-          el.style.pointerEvents = 'auto'; // vẫn cho kéo
-          window.removeEventListener('mousemove', onMouseMove);
-          window.removeEventListener('mouseup', onMouseUp);
-        }
-        
-        window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('mouseup', onMouseUp);
-      });
-      
-      el.addEventListener('dragstart', (e) => e.preventDefault());
-      el.style.pointerEvents = 'auto';
-      el.style.cursor = 'grab';
-    }
+            // Bắt đầu quay (chỉ ghi stream gốc)
+            function startRecording() {
+                if (!mediaStream) {
+                    showError('Chưa có camera, vui lòng bấm "Bắt đầu camera"');
+                    return;
+                }
+                recordedChunks = [];
 
-    // --- event listeners ---
-    function initUI() {
-      loadSettings();
-      
-      // Aspect buttons
-      document.querySelectorAll('.aspect-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          setAspect(btn.dataset.aspect);
-        });
-      });
-      
-      startCamBtn.addEventListener('click', startCamera);
-      
-      // overlay text realtime
-      overlayInput.addEventListener('input', (e) => {
-        overlay.textContent = e.target.value;
-        saveTextToStorage(e.target.value);
-      });
-      
-      fontSizeSlider.addEventListener('input', (e) => {
-        overlay.style.fontSize = e.target.value + 'px';
-      });
-      
-      colorPicker.addEventListener('input', (e) => {
-        overlay.style.color = e.target.value;
-      });
-      
-      opacitySlider.addEventListener('input', (e) => {
-        overlay.style.opacity = e.target.value;
-      });
-      
-      // toggle overlay visibility (ẩn/hiện)
-      toggleOverlayBtn.addEventListener('click', () => {
-        overlayVisible = !overlayVisible;
-        if (overlayVisible) {
-          overlay.style.display = 'block';
-          toggleOverlayBtn.textContent = '👁 Ẩn overlay';
-          wrapper.classList.remove('hide-overlay');
-        } else {
-          overlay.style.display = 'none';
-          toggleOverlayBtn.textContent = '👁 Hiện overlay';
-          wrapper.classList.add('hide-overlay');
-        }
-      });
-      
-      // record buttons
-      startRecordBtn.addEventListener('click', startRecording);
-      stopRecordBtn.addEventListener('click', stopRecording);
-      
-      // reset
-      resetBtn.addEventListener('click', () => {
-        overlayInput.value = 'Đọc dòng này ✨';
-        overlay.textContent = 'Đọc dòng này ✨';
-        fontSizeSlider.value = 48;
-        overlay.style.fontSize = '48px';
-        colorPicker.value = '#ffffff';
-        overlay.style.color = '#ffffff';
-        opacitySlider.value = 0.95;
-        overlay.style.opacity = '0.95';
-        resetOverlayPosition();
-        setAspect('auto');
-        saveTextToStorage('Đọc dòng này ✨');
-        saveAspectToStorage('auto');
-        if (!overlayVisible) {
-          overlayVisible = true; overlay.style.display='block'; toggleOverlayBtn.textContent='👁 Ẩn overlay';
-          wrapper.classList.remove('hide-overlay');
-        }
-      });
-      
-      // Khởi tạo overlay draggable
-      makeDraggable(overlay);
-      
-      // Cleanup khi rời trang
-      window.addEventListener('beforeunload', () => {
-        if (mediaStream) stopMediaTracks();
-      });
-    }
+                let mimeType = '';
+                const mp4Supported = MediaRecorder.isTypeSupported('video/mp4');
+                if (mp4Supported) {
+                    mimeType = 'video/mp4';
+                } else {
+                    mimeType = 'video/webm;codecs=vp8,opus';
+                }
 
-    // init position
-    resetOverlayPosition();
-    initUI();
-    // set default aspect
-    setAspect(currentAspect);
-    overlay.style.fontSize = fontSizeSlider.value+'px';
-    overlay.style.color = colorPicker.value;
-    overlay.style.opacity = opacitySlider.value;
-  })();
-</script>
+                try {
+                    mediaRecorder = new MediaRecorder(mediaStream, { mimeType: mimeType || undefined });
+                } catch (e) {
+                    mediaRecorder = new MediaRecorder(mediaStream);
+                }
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+                };
+
+                mediaRecorder.onstart = () => {
+                    isRecording = true;
+                    recordingStartTime = Date.now();
+                    startRecordBtn.disabled = true;
+                    stopRecordBtn.disabled = false;
+                    downloadBtn.disabled = true;
+                    previewRecordedBtn.disabled = true;
+                    lastRecordedBlob = null;
+                    statusText.textContent = '🔴 Đang quay';
+                    recordStatusDiv.classList.add('recording');
+                    timerInterval = setInterval(() => {
+                        if (!recordingStartTime) return;
+                        const elapsed = (Date.now() - recordingStartTime) / 1000;
+                        timerDisplay.textContent = formatTime(elapsed);
+                    }, 200);
+                };
+
+                mediaRecorder.onstop = () => {
+                    isRecording = false;
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    startRecordBtn.disabled = false;
+                    stopRecordBtn.disabled = true;
+                    statusText.textContent = 'Đã dừng';
+                    recordStatusDiv.classList.remove('recording');
+
+                    if (recordedChunks.length) {
+                        const mime = mediaRecorder.mimeType || 'video/webm';
+                        lastRecordedMime = mime;
+                        const blob = new Blob(recordedChunks, { type: mime });
+                        lastRecordedBlob = blob;
+                        const url = URL.createObjectURL(blob);
+                        downloadBtn.disabled = false;
+                        previewRecordedBtn.disabled = false;
+                        downloadBtn.onclick = () => {
+                            const a = document.createElement('a');
+                            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                            let ext = mime.includes('mp4') ? 'mp4' : 'webm';
+                            a.href = url;
+                            a.download = `video_record_${timestamp}.${ext}`;
+                            a.click();
+                        };
+                    } else {
+                        showError('Không có dữ liệu video');
+                    }
+                };
+
+                mediaRecorder.start(1000);
+            }
+
+            function stopRecording() {
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                }
+            }
+
+            // Xem lại video đã quay
+            function openPreview() {
+                if (!lastRecordedBlob) {
+                    showError('Chưa có video để xem lại.');
+                    return;
+                }
+                const url = URL.createObjectURL(lastRecordedBlob);
+                previewVideo.src = url;
+                previewModal.classList.add('open');
+                previewVideo.play().catch(() => {});
+                // Gán download cho nút trong preview
+                downloadFromPreviewBtn.onclick = () => {
+                    const a = document.createElement('a');
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                    let ext = lastRecordedMime.includes('mp4') ? 'mp4' : 'webm';
+                    a.href = url;
+                    a.download = `video_record_${timestamp}.${ext}`;
+                    a.click();
+                };
+            }
+
+            function closePreview() {
+                previewVideo.pause();
+                previewVideo.src = '';
+                previewModal.classList.remove('open');
+            }
+
+            // Reset overlay vị trí về giữa
+            function resetOverlayPosition() {
+                overlay.style.top = overlayDefaultPos.top;
+                overlay.style.left = overlayDefaultPos.left;
+                overlay.style.transform = overlayDefaultPos.transform;
+            }
+
+            // --- Drag & Drop overlay ---
+            function makeDraggable(el) {
+                el.addEventListener('mousedown', (e) => {
+                    if (e.button !== 0) return;
+                    e.preventDefault();
+                    const rect = el.getBoundingClientRect();
+                    const wrapperRect = wrapper.getBoundingClientRect();
+
+                    const offsetX = e.clientX - rect.left;
+                    const offsetY = e.clientY - rect.top;
+
+                    isDragging = true;
+                    el.classList.add('dragging');
+                    el.style.cursor = 'grabbing';
+                    el.style.pointerEvents = 'auto';
+
+                    function onMouseMove(moveEvent) {
+                        if (!isDragging) return;
+                        moveEvent.preventDefault();
+
+                        let x = moveEvent.clientX - offsetX;
+                        let y = moveEvent.clientY - offsetY;
+
+                        const wrapRect = wrapper.getBoundingClientRect();
+                        const elRect = el.getBoundingClientRect();
+
+                        const leftPercent = ((x - wrapRect.left) / wrapRect.width) * 100;
+                        const topPercent = ((y - wrapRect.top) / wrapRect.height) * 100;
+
+                        const clampLeft = Math.min(100 - (elRect.width / wrapRect.width) * 100, Math.max(0,
+                            leftPercent));
+                        const clampTop = Math.min(100 - (elRect.height / wrapRect.height) * 100, Math.max(0,
+                        topPercent));
+
+                        el.style.left = clampLeft + '%';
+                        el.style.top = clampTop + '%';
+                        el.style.transform = 'none';
+                    }
+
+                    function onMouseUp() {
+                        isDragging = false;
+                        el.classList.remove('dragging');
+                        el.style.cursor = 'grab';
+                        el.style.pointerEvents = 'auto';
+                        window.removeEventListener('mousemove', onMouseMove);
+                        window.removeEventListener('mouseup', onMouseUp);
+                    }
+
+                    window.addEventListener('mousemove', onMouseMove);
+                    window.addEventListener('mouseup', onMouseUp);
+                });
+
+                el.addEventListener('dragstart', (e) => e.preventDefault());
+                el.style.pointerEvents = 'auto';
+                el.style.cursor = 'grab';
+            }
+
+            // --- event listeners ---
+            function initUI() {
+                loadSettings();
+
+                // Aspect buttons
+                document.querySelectorAll('#aspectBtnGroup .aspect-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        setAspect(btn.dataset.aspect);
+                    });
+                });
+
+                startCamBtn.addEventListener('click', startCamera);
+
+                // Mirror button
+                mirrorBtn.addEventListener('click', toggleMirror);
+
+                // overlay text realtime
+                overlayInput.addEventListener('input', (e) => {
+                    overlay.textContent = e.target.value;
+                    saveTextToStorage(e.target.value);
+                });
+
+                fontSizeSlider.addEventListener('input', (e) => {
+                    overlay.style.fontSize = e.target.value + 'px';
+                });
+
+                colorPicker.addEventListener('input', (e) => {
+                    overlay.style.color = e.target.value;
+                });
+
+                opacitySlider.addEventListener('input', (e) => {
+                    overlay.style.opacity = e.target.value;
+                });
+
+                // toggle overlay visibility (ẩn/hiện)
+                toggleOverlayBtn.addEventListener('click', () => {
+                    overlayVisible = !overlayVisible;
+                    if (overlayVisible) {
+                        overlay.style.display = 'block';
+                        toggleOverlayBtn.textContent = '👁 Ẩn overlay';
+                        wrapper.classList.remove('hide-overlay');
+                    } else {
+                        overlay.style.display = 'none';
+                        toggleOverlayBtn.textContent = '👁 Hiện overlay';
+                        wrapper.classList.add('hide-overlay');
+                    }
+                });
+
+                // record buttons
+                startRecordBtn.addEventListener('click', startRecording);
+                stopRecordBtn.addEventListener('click', stopRecording);
+
+                // preview
+                previewRecordedBtn.addEventListener('click', openPreview);
+                closePreviewBtn.addEventListener('click', closePreview);
+                previewModal.addEventListener('click', (e) => {
+                    if (e.target === previewModal) closePreview();
+                });
+
+                // reset
+                resetBtn.addEventListener('click', () => {
+                    overlayInput.value = 'Đọc dòng này ✨';
+                    overlay.textContent = 'Đọc dòng này ✨';
+                    fontSizeSlider.value = 48;
+                    overlay.style.fontSize = '48px';
+                    colorPicker.value = '#ffffff';
+                    overlay.style.color = '#ffffff';
+                    opacitySlider.value = 0.95;
+                    overlay.style.opacity = '0.95';
+                    resetOverlayPosition();
+                    setAspect('auto');
+                    setMirror(false);
+                    saveTextToStorage('Đọc dòng này ✨');
+                    saveAspectToStorage('auto');
+                    saveMirrorToStorage(false);
+                    if (!overlayVisible) {
+                        overlayVisible = true;
+                        overlay.style.display = 'block';
+                        toggleOverlayBtn.textContent = '👁 Ẩn overlay';
+                        wrapper.classList.remove('hide-overlay');
+                    }
+                    lastRecordedBlob = null;
+                    previewRecordedBtn.disabled = true;
+                    downloadBtn.disabled = true;
+                });
+
+                // Khởi tạo overlay draggable
+                makeDraggable(overlay);
+
+                // Cleanup khi rời trang
+                window.addEventListener('beforeunload', () => {
+                    if (mediaStream) stopMediaTracks();
+                });
+
+                // Phím tắt đóng preview
+                window.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && previewModal.classList.contains('open')) {
+                        closePreview();
+                    }
+                });
+            }
+
+            // init position
+            resetOverlayPosition();
+            initUI();
+            setAspect(currentAspect);
+            setMirror(isMirrored);
+            overlay.style.fontSize = fontSizeSlider.value + 'px';
+            overlay.style.color = colorPicker.value;
+            overlay.style.opacity = opacitySlider.value;
+        })();
+    </script>
 </body>
 </html>
