@@ -1,1197 +1,1613 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ProVideo Recorder | DevMode | DuyHoang</title>
-  <style>
-    /* === CSS RESET & VARIABLES === */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    :root {
-      --bg: #0a0a0f;
-      --surface: rgba(18, 18, 26, 0.85);
-      --surface2: rgba(25, 25, 35, 0.7);
-      --text: #e0e0ff;
-      --text-secondary: #8888aa;
-      --accent: #00e5ff;
-      --accent2: #b44dff;
-      --danger: #ff3366;
-      --success: #00e676;
-      --warning: #ffaa00;
-      --border: rgba(0, 229, 255, 0.2);
-      --glass: rgba(10, 10, 20, 0.75);
-      --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-      --glow: 0 0 20px rgba(0, 229, 255, 0.3);
-      --radius: 16px;
-      --radius-sm: 10px;
-      --transition: 0.25s cubic-bezier(0.2, 0.9, 0.4, 1);
-      --preview-aspect: 16 / 9; /* Mặc định 16:9 */
-    }
-    body.light {
-      --bg: #f5f7fa;
-      --surface: rgba(255, 255, 255, 0.7);
-      --surface2: rgba(240, 242, 245, 0.8);
-      --text: #1a1a2e;
-      --text-secondary: #5a5a7a;
-      --accent: #0077ff;
-      --accent2: #7b2fff;
-      --danger: #e6004c;
-      --success: #00b248;
-      --warning: #e69500;
-      --border: rgba(0, 100, 255, 0.25);
-      --glass: rgba(255, 255, 255, 0.6);
-      --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-      --glow: 0 0 25px rgba(0, 140, 255, 0.15);
-    }
-    body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
-      transition: background var(--transition), color var(--transition);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 10px;
-    }
-    /* === CUSTOM SCROLLBAR === */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb {
-      background: var(--accent);
-      border-radius: 12px;
-      box-shadow: 0 0 8px var(--accent);
-    }
-    /* === MAIN CONTAINER === */
-    .app-container {
-      width: 100%;
-      max-width: 1300px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    /* === GLASS HEADER === */
-    .glass-header {
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 12px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 10px;
-      box-shadow: var(--shadow), var(--glow);
-      transition: all var(--transition);
-    }
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .logo {
-      font-weight: 700;
-      font-size: 1.3rem;
-      letter-spacing: -0.5px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .status-badge {
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      background: rgba(0,0,0,0.3);
-      border: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .recording-dot {
-      width: 10px;
-      height: 10px;
-      background: var(--danger);
-      border-radius: 50%;
-      animation: pulse 1.2s infinite;
-      box-shadow: 0 0 12px var(--danger);
-      display: none;
-    }
-    .recording-dot.active { display: block; }
-    @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.8); } 100% { opacity: 1; transform: scale(1); } }
-    .theme-toggle {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 6px 12px;
-      border-radius: 20px;
-      cursor: pointer;
-      backdrop-filter: blur(8px);
-      transition: all var(--transition);
-      font-weight: 600;
-    }
-    .theme-toggle:hover { background: var(--accent); color: #000; border-color: var(--accent); box-shadow: 0 0 16px var(--accent); }
-    /* === LAYOUT === */
-    .main-layout {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    /* === CAMERA PREVIEW === */
-    .preview-section {
-      flex: 2;
-      min-width: 300px;
-      position: relative;
-      border-radius: var(--radius);
-      overflow: hidden;
-      background: #000;
-      box-shadow: var(--shadow), var(--glow);
-      border: 1px solid var(--border);
-      aspect-ratio: var(--preview-aspect); /* Sử dụng biến CSS động */
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: aspect-ratio 0.3s ease;
-    }
-    .video-container {
-      position: relative;
-      width: 100%;
-      height: 100%;
-    }
-    video#cameraPreview {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      transition: transform 0.2s ease;
-    }
-    video#cameraPreview.mirror {
-      transform: scaleX(-1);
-    }
-    .text-overlay-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 10;
-    }
-    .text-overlay-item {
-      position: absolute;
-      cursor: move;
-      pointer-events: auto;
-      user-select: none;
-      white-space: nowrap;
-      font-weight: 600;
-      transition: box-shadow 0.1s;
-      line-height: 1.2;
-    }
-    .text-overlay-item.selected {
-      outline: 2px dashed var(--accent);
-      outline-offset: 4px;
-      box-shadow: 0 0 15px var(--accent);
-      z-index: 20;
-    }
-    .resize-handle {
-      position: absolute;
-      width: 14px;
-      height: 14px;
-      background: var(--accent);
-      border: 2px solid white;
-      border-radius: 50%;
-      bottom: -7px;
-      right: -7px;
-      cursor: nwse-resize;
-      display: none;
-      z-index: 25;
-    }
-    .rotate-handle {
-      position: absolute;
-      width: 14px;
-      height: 14px;
-      background: var(--warning);
-      border: 2px solid white;
-      border-radius: 50%;
-      top: -20px;
-      left: 50%;
-      transform: translateX(-50%);
-      cursor: grab;
-      display: none;
-      z-index: 25;
-    }
-    .text-overlay-item.selected .resize-handle,
-    .text-overlay-item.selected .rotate-handle { display: block; }
-    /* === SIDEBAR === */
-    .sidebar {
-      flex: 1;
-      min-width: 260px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .panel {
-      backdrop-filter: blur(16px) saturate(180%);
-      -webkit-backdrop-filter: blur(16px) saturate(180%);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 14px;
-      box-shadow: var(--shadow);
-      transition: all var(--transition);
-    }
-    .panel h3 {
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 10px;
-      color: var(--accent);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .btn-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    /* === BUTTONS === */
-    .btn {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 8px 14px;
-      border-radius: 20px;
-      font-weight: 600;
-      font-size: 0.8rem;
-      cursor: pointer;
-      backdrop-filter: blur(8px);
-      transition: all var(--transition);
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      white-space: nowrap;
-    }
-    .btn:hover {
-      background: var(--accent);
-      color: #000;
-      border-color: var(--accent);
-      box-shadow: 0 0 18px var(--accent);
-      transform: translateY(-1px);
-    }
-    .btn.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
-    .btn.danger { background: transparent; border-color: var(--danger); color: var(--danger); }
-    .btn.danger:hover { background: var(--danger); color: #fff; box-shadow: 0 0 18px var(--danger); }
-    .btn.small { padding: 4px 10px; font-size: 0.7rem; }
-    .btn.active-btn {
-      background: var(--accent);
-      color: #000;
-      border-color: var(--accent);
-      box-shadow: 0 0 15px var(--accent);
-    }
-    /* === INPUTS === */
-    input, select, .slider {
-      background: rgba(0,0,0,0.3);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 6px 10px;
-      color: var(--text);
-      font-size: 0.8rem;
-      width: 100%;
-      margin-top: 4px;
-      transition: all var(--transition);
-    }
-    input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 12px var(--accent); }
-    /* === FAKE CONSOLE === */
-    .dev-console {
-      background: rgba(0,0,0,0.8);
-      border: 1px solid var(--accent);
-      border-radius: var(--radius-sm);
-      padding: 8px;
-      font-family: 'Fira Code', monospace;
-      font-size: 0.7rem;
-      color: #0f0;
-      height: 80px;
-      overflow-y: auto;
-      box-shadow: inset 0 0 10px rgba(0,255,0,0.2);
-    }
-    /* === TOAST === */
-    .toast-container {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .toast {
-      background: var(--surface);
-      border: 1px solid var(--accent);
-      border-radius: 12px;
-      padding: 10px 16px;
-      backdrop-filter: blur(20px);
-      box-shadow: var(--glow);
-      animation: slideIn 0.3s ease;
-      font-weight: 500;
-    }
-    @keyframes slideIn { from { opacity:0; transform: translateX(40px); } to { opacity:1; transform: translateX(0); } }
-    /* === MODAL === */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-      backdrop-filter: blur(8px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-    .modal {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 20px;
-      width: 90%;
-      max-width: 700px;
-      box-shadow: var(--shadow), var(--glow);
-    }
-    /* === LOADING SCREEN === */
-    .loading-screen {
-      position: fixed;
-      inset: 0;
-      background: var(--bg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10000;
-      transition: opacity 0.5s;
-    }
-    .loading-screen.hidden { opacity: 0; pointer-events: none; }
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    /* Responsive */
-    @media (max-width: 800px) {
-      .main-layout { flex-direction: column; }
-      .preview-section { aspect-ratio: auto !important; min-height: 250px; }
-      .sidebar { min-width: 100%; }
-    }
-    /* Toggle switch cho mirror */
-    .toggle-switch {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      margin-top: 6px;
-      font-size: 0.8rem;
-    }
-    .toggle-switch input {
-      display: none;
-    }
-    .slider-toggle {
-      width: 40px;
-      height: 20px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 20px;
-      position: relative;
-      transition: background var(--transition);
-      border: 1px solid var(--border);
-    }
-    .slider-toggle::before {
-      content: '';
-      position: absolute;
-      width: 16px;
-      height: 16px;
-      background: white;
-      border-radius: 50%;
-      top: 1px;
-      left: 2px;
-      transition: transform var(--transition);
-    }
-    input:checked + .slider-toggle {
-      background: var(--accent);
-      border-color: var(--accent);
-    }
-    input:checked + .slider-toggle::before {
-      transform: translateX(18px);
-    }
-  </style>
-</head>
-<body class="dark">
-  <!-- LOADING SCREEN -->
-  <div class="loading-screen" id="loadingScreen"><div class="spinner"></div></div>
-
-  <!-- TOAST CONTAINER -->
-  <div class="toast-container" id="toastContainer"></div>
-
-  <!-- APP -->
-  <div class="app-container" id="appContainer">
-    <!-- HEADER -->
-    <header class="glass-header">
-      <div class="header-left">
-        <span class="logo">⚡ ProRec</span>
-        <span class="status-badge" id="camStatus">📷 Camera sẵn sàng</span>
-        <span class="status-badge" id="micStatus">🎤 Mic sẵn sàng</span>
-        <span class="recording-dot" id="recDot"></span>
-        <span id="timerDisplay" style="font-family:monospace;margin-left:8px;">00:00</span>
-        <span id="fpsDisplay" style="font-family:monospace;margin-left:6px;font-size:0.7rem;">FPS:--</span>
-        <span id="sizeDisplay" style="font-family:monospace;margin-left:6px;font-size:0.7rem;">0MB</span>
-      </div>
-      <button class="theme-toggle" id="themeToggle">☀️ Light</button>
-    </header>
-
-    <!-- MAIN LAYOUT -->
-    <div class="main-layout">
-      <!-- PREVIEW -->
-      <div class="preview-section" id="previewSection">
-        <div class="video-container" id="videoContainer">
-          <video id="cameraPreview" autoplay playsinline muted></video>
-          <div class="text-overlay-container" id="textOverlayContainer"></div>
-        </div>
-      </div>
-
-      <!-- SIDEBAR -->
-      <div class="sidebar">
-        <!-- CAMERA CONTROLS -->
-        <div class="panel">
-          <h3>🎥 Camera</h3>
-          <div class="btn-group">
-            <button class="btn" id="switchCameraBtn">🔄 Đổi Cam</button>
-            <button class="btn primary" id="startRecordBtn">⏺️ Quay</button>
-            <button class="btn" id="pauseRecordBtn" disabled>⏸️ Tạm dừng</button>
-            <button class="btn" id="resumeRecordBtn" disabled>▶️ Tiếp tục</button>
-            <button class="btn danger" id="stopRecordBtn" disabled>⏹️ Dừng</button>
-          </div>
-        </div>
-
-        <!-- KHUNG HÌNH & MIRROR PANEL MỚI -->
-        <div class="panel">
-          <h3>🖼️ Khung hình & Gương</h3>
-          <label style="font-size:0.8rem; margin-bottom:2px;">Tỉ lệ khung hình</label>
-          <select id="aspectRatioSelect">
-            <option value="16:9" selected>16:9 (Full ngang)</option>
-            <option value="9:16">9:16 (Full dọc)</option>
-            <option value="1:1">1:1 (Vuông)</option>
-            <option value="3:4">3:4</option>
-            <option value="19:6">19:6 (Siêu rộng)</option>
-            <option value="auto">Tự động (gốc)</option>
-          </select>
-          <div class="toggle-switch" style="margin-top:10px;">
-            <label for="mirrorToggle" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-              <input type="checkbox" id="mirrorToggle">
-              <span class="slider-toggle"></span>
-              <span>🪞 Anti lật (Mirror)</span>
-            </label>
-          </div>
-          <small style="display:block; margin-top:4px; color:var(--text-secondary);">Bật để lật ngược camera trước</small>
-        </div>
-
-        <!-- TEXT OVERLAY PANEL -->
-        <div class="panel">
-          <h3>✍️ Text Overlay</h3>
-          <input type="text" id="newTextInput" placeholder="Nhập text mới...">
-          <div class="btn-group" style="margin-top:6px;">
-            <button class="btn small" id="addTextBtn">+ Thêm</button>
-            <button class="btn small" id="duplicateTextBtn">📋 Nhân bản</button>
-            <button class="btn small danger" id="deleteTextBtn">🗑️ Xóa</button>
-          </div>
-          <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
-            <input type="color" id="textColorPicker" value="#00e5ff" title="Màu chữ">
-            <select id="fontFamilySelect" style="width:auto;">
-              <option value="Arial">Arial</option>
-              <option value="Segoe UI">Segoe UI</option>
-              <option value="Courier New">Courier New</option>
-              <option value="Impact">Impact</option>
-              <option value="Comic Sans MS">Comic Sans</option>
-            </select>
-            <input type="range" id="fontSizeSlider" min="12" max="120" value="32" step="1" title="Cỡ chữ" style="width:80px;">
-            <input type="range" id="opacitySlider" min="0.1" max="1" step="0.05" value="1" title="Độ mờ" style="width:70px;">
-            <select id="fontWeightSelect" style="width:auto;">
-              <option value="400">Regular</option>
-              <option value="700">Bold</option>
-              <option value="900">Black</option>
-            </select>
-            <select id="textAlignSelect" style="width:auto;">
-              <option value="left">Trái</option>
-              <option value="center">Giữa</option>
-              <option value="right">Phải</option>
-            </select>
-            <button class="btn small" id="shadowToggle">✨ Bóng</button>
-            <button class="btn small" id="bgBlurToggle">🌫️ Nền mờ</button>
-          </div>
-        </div>
-
-        <!-- LAYER MANAGER -->
-        <div class="panel">
-          <h3>📚 Layers</h3>
-          <div id="layerList" style="max-height:120px; overflow-y:auto; font-size:0.75rem;"></div>
-        </div>
-
-        <!-- DEV CONSOLE -->
-        <div class="dev-console" id="devConsole">
-          > System initialized.<br>
-          > Ready.
-        </div>
-      </div>
-    </div>
-
-    <!-- VIDEO PLAYER MODAL -->
-    <div class="modal-overlay" id="videoModal">
-      <div class="modal">
-        <h3>🎬 Xem lại video</h3>
-        <video id="reviewVideo" controls style="width:100%; border-radius:12px; margin:12px 0;"></video>
-        <div class="btn-group">
-          <button class="btn primary" id="downloadVideoBtn">⬇️ Tải MP4</button>
-          <button class="btn danger" id="deleteVideoBtn">🗑️ Xóa</button>
-          <button class="btn" id="closeModalBtn">Đóng</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    (function() {
-      // ==================== MODULE PATTERN ====================
-      const $ = (sel) => document.querySelector(sel);
-      const $$ = (sel) => document.querySelectorAll(sel);
-
-      const loadingScreen = $('#loadingScreen');
-      const themeToggle = $('#themeToggle');
-      const cameraPreview = $('#cameraPreview');
-      const textOverlayContainer = $('#textOverlayContainer');
-      const camStatus = $('#camStatus');
-      const micStatus = $('#micStatus');
-      const recDot = $('#recDot');
-      const timerDisplay = $('#timerDisplay');
-      const fpsDisplay = $('#fpsDisplay');
-      const sizeDisplay = $('#sizeDisplay');
-      const devConsole = $('#devConsole');
-      const layerList = $('#layerList');
-      const videoModal = $('#videoModal');
-      const reviewVideo = $('#reviewVideo');
-      const toastContainer = $('#toastContainer');
-      const previewSection = $('#previewSection');
-
-      // Buttons
-      const switchCameraBtn = $('#switchCameraBtn');
-      const startRecordBtn = $('#startRecordBtn');
-      const pauseRecordBtn = $('#pauseRecordBtn');
-      const resumeRecordBtn = $('#resumeRecordBtn');
-      const stopRecordBtn = $('#stopRecordBtn');
-      const addTextBtn = $('#addTextBtn');
-      const duplicateTextBtn = $('#duplicateTextBtn');
-      const deleteTextBtn = $('#deleteTextBtn');
-      const downloadVideoBtn = $('#downloadVideoBtn');
-      const deleteVideoBtn = $('#deleteVideoBtn');
-      const closeModalBtn = $('#closeModalBtn');
-      const newTextInput = $('#newTextInput');
-      const textColorPicker = $('#textColorPicker');
-      const fontFamilySelect = $('#fontFamilySelect');
-      const fontSizeSlider = $('#fontSizeSlider');
-      const opacitySlider = $('#opacitySlider');
-      const fontWeightSelect = $('#fontWeightSelect');
-      const textAlignSelect = $('#textAlignSelect');
-      const shadowToggle = $('#shadowToggle');
-      const bgBlurToggle = $('#bgBlurToggle');
-      
-      // Mới: aspect ratio và mirror
-      const aspectRatioSelect = $('#aspectRatioSelect');
-      const mirrorToggle = $('#mirrorToggle');
-
-      // ---------- STATE ----------
-      let currentStream = null;
-      let mediaRecorder = null;
-      let recordedChunks = [];
-      let recordingStartTime = null;
-      let timerInterval = null;
-      let fpsInterval = null;
-      let frameCount = 0;
-      let lastFpsTime = performance.now();
-      let currentFps = 0;
-      let isRecording = false;
-      let isPaused = false;
-      let currentCameraFacing = 'user';
-      let selectedTextId = null;
-      let textObjects = [];
-      let textIdCounter = 0;
-      let videoBlobUrl = null;
-      let videoBlob = null;
-      let isDragging = false;
-      let dragOffsetX, dragOffsetY, dragTargetId;
-      let isResizing = false, resizeTargetId;
-      let isRotating = false, rotateTargetId, rotateStartAngle, rotateCenterX, rotateCenterY;
-      
-      // State mới
-      let currentAspectRatio = '16:9';
-      let isMirrored = false;
-
-      // ---------- UTILS ----------
-      function logToConsole(msg) {
-        devConsole.innerHTML += `<br>> ${msg}`;
-        devConsole.scrollTop = devConsole.scrollHeight;
-      }
-      function showToast(msg, type='info') {
-        const toast = document.createElement('div');
-        toast.className = 'toast';
-        toast.textContent = msg;
-        toast.style.borderColor = type==='error' ? 'var(--danger)' : 'var(--accent)';
-        toastContainer.appendChild(toast);
-        setTimeout(() => { toast.style.opacity='0'; setTimeout(()=>toast.remove(),300); }, 2500);
-        logToConsole(msg);
-      }
-      function formatTime(seconds) {
-        const m = Math.floor(seconds/60).toString().padStart(2,'0');
-        const s = Math.floor(seconds%60).toString().padStart(2,'0');
-        return `${m}:${s}`;
-      }
-      function formatBytes(bytes) {
-        if (bytes < 1024) return bytes + ' B';
-        if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
-        return (bytes/1048576).toFixed(2) + ' MB';
-      }
-
-      // ---------- ASPECT RATIO HANDLER ----------
-      function applyAspectRatio(ratio) {
-        const root = document.documentElement;
-        if (ratio === 'auto') {
-          previewSection.style.aspectRatio = 'auto';
-          logToConsole('Aspect ratio: auto (gốc)');
-        } else {
-          previewSection.style.aspectRatio = ratio;
-          logToConsole(`Aspect ratio set to ${ratio}`);
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>DevCam Pro - Quay Video & Text Overlay</title>
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --bg2: #111118;
+            --surface: #1a1a2e;
+            --glass: rgba(20, 20, 35, 0.75);
+            --glass2: rgba(25, 25, 45, 0.65);
+            --text: #e0e0f0;
+            --text2: #b0b0c8;
+            --text3: #7878a0;
+            --accent: #00d4ff;
+            --accent2: #7b5cff;
+            --accent3: #ff3d71;
+            --neon: #00d4ff;
+            --neon2: #b347ea;
+            --border: rgba(255, 255, 255, 0.08);
+            --border2: rgba(255, 255, 255, 0.14);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            --glow: 0 0 30px rgba(0, 212, 255, 0.25);
+            --radius: 14px;
+            --radius-sm: 10px;
+            --radius-xs: 6px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --font: 'Segoe UI', 'SF Pro Display', 'Inter', system-ui, -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', monospace;
+            --recording-pulse: #ff3d71;
+            --success: #00e676;
         }
-        // Lưu lại lựa chọn
-        currentAspectRatio = ratio;
-        localStorage.setItem('aspectRatio', ratio);
-      }
 
-      // ---------- MIRROR HANDLER ----------
-      function applyMirror(state) {
-        isMirrored = state;
-        if (state) {
-          cameraPreview.classList.add('mirror');
-          logToConsole('Mirror (anti lật) BẬT');
-        } else {
-          cameraPreview.classList.remove('mirror');
-          logToConsole('Mirror TẮT');
+        [data-theme="light"] {
+            --bg: #f5f5f8;
+            --bg2: #eaeaef;
+            --surface: #ffffff;
+            --glass: rgba(255, 255, 255, 0.8);
+            --glass2: rgba(255, 255, 255, 0.7);
+            --text: #1a1a2e;
+            --text2: #444460;
+            --text3: #707090;
+            --accent: #0088cc;
+            --accent2: #6c3cff;
+            --accent3: #d63060;
+            --neon: #0088cc;
+            --neon2: #6c3cff;
+            --border: rgba(0, 0, 0, 0.08);
+            --border2: rgba(0, 0, 0, 0.14);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --glow: 0 0 30px rgba(0, 136, 204, 0.15);
+            --recording-pulse: #e02050;
         }
-        localStorage.setItem('mirror', state ? 'true' : 'false');
-      }
 
-      // ---------- CAMERA INIT ----------
-      async function getCameras() {
-        try {
-          const devices = await navigator.mediaDevices.enumerateDevices();
-          const videoDevices = devices.filter(d => d.kind === 'videoinput');
-          logToConsole(`Found ${videoDevices.length} cameras`);
-          return videoDevices;
-        } catch (e) {
-          showToast('Không thể liệt kê thiết bị', 'error');
-          return [];
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-      }
-
-      async function startCamera(facingMode = 'user') {
-        if (currentStream) {
-          currentStream.getTracks().forEach(track => track.stop());
+        html {
+            font-size: 15px;
+            scroll-behavior: smooth;
         }
-        try {
-          const constraints = {
-            video: {
-              facingMode: { ideal: facingMode },
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-              frameRate: { ideal: 30 }
-            },
-            audio: true
-          };
-          currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-          cameraPreview.srcObject = currentStream;
-          currentCameraFacing = facingMode;
-          camStatus.textContent = `📷 Camera ${facingMode==='user'?'trước':'sau'}`;
-          micStatus.textContent = '🎤 Mic hoạt động';
-          logToConsole(`Camera started: ${facingMode}`);
-          showToast('Camera đã sẵn sàng');
-          startFpsCounter();
-          // Áp dụng mirror nếu đang bật (thường front camera cần mirror)
-          if (isMirrored) {
-            cameraPreview.classList.add('mirror');
-          } else {
-            cameraPreview.classList.remove('mirror');
-          }
-        } catch (err) {
-          showToast('Lỗi truy cập camera: ' + err.message, 'error');
-          logToConsole('Camera error: ' + err.message);
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow: hidden;
+            transition: background var(--transition), color var(--transition);
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
-      }
 
-      async function switchCamera() {
-        const newFacing = currentCameraFacing === 'user' ? 'environment' : 'user';
-        await startCamera(newFacing);
-        showToast(`Đã chuyển sang camera ${newFacing==='user'?'trước':'sau'}`);
-      }
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border2);
+            border-radius: 10px;
+        }
 
-      function startFpsCounter() {
-        frameCount = 0;
-        lastFpsTime = performance.now();
-        if (fpsInterval) clearInterval(fpsInterval);
-        fpsInterval = setInterval(() => {
-          const now = performance.now();
-          const delta = now - lastFpsTime;
-          currentFps = Math.round((frameCount / delta) * 1000);
-          frameCount = 0;
-          lastFpsTime = now;
-          fpsDisplay.textContent = `FPS:${currentFps}`;
-        }, 500);
-        cameraPreview.addEventListener('timeupdate', () => { frameCount++; });
-      }
-
-      // ---------- RECORDING ----------
-      function startRecording() {
-        if (!currentStream) return showToast('Chưa có camera', 'error');
-        try {
-          const options = { mimeType: 'video/webm; codecs=vp9,opus' };
-          if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-            options.mimeType = 'video/webm; codecs=vp8,opus';
-            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-              options.mimeType = 'video/webm';
+        #loading-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s, visibility 0.5s;
+        }
+        #loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .loader-ring {
+            width: 60px;
+            height: 60px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 20px;
+        }
+        .loader-text {
+            font-family: var(--font-mono);
+            color: var(--accent);
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            animation: pulse-text 1.5s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
             }
-          }
-          mediaRecorder = new MediaRecorder(currentStream, options);
-          recordedChunks = [];
-          mediaRecorder.ondataavailable = (e) => {
-            if (e.data.size > 0) recordedChunks.push(e.data);
-          };
-          mediaRecorder.onstop = () => {
-            clearInterval(timerInterval);
-            isRecording = false;
-            isPaused = false;
-            recDot.classList.remove('active');
-            updateRecordButtons();
-            const blob = new Blob(recordedChunks, { type: options.mimeType });
-            videoBlob = blob;
-            if (videoBlobUrl) URL.revokeObjectURL(videoBlobUrl);
-            videoBlobUrl = URL.createObjectURL(blob);
-            reviewVideo.src = videoBlobUrl;
-            videoModal.style.display = 'flex';
-            sizeDisplay.textContent = formatBytes(blob.size);
-            showToast('Quay xong! Video đã sẵn sàng');
-            logToConsole(`Recording finished: ${formatBytes(blob.size)}`);
-          };
-          mediaRecorder.start(1000);
-          recordingStartTime = Date.now();
-          isRecording = true;
-          recDot.classList.add('active');
-          updateRecordButtons();
-          timerInterval = setInterval(() => {
-            const elapsed = (Date.now() - recordingStartTime) / 1000;
-            timerDisplay.textContent = formatTime(elapsed);
-          }, 200);
-          showToast('Bắt đầu quay video');
-        } catch (e) {
-          showToast('Không thể bắt đầu quay: ' + e.message, 'error');
         }
-      }
-
-      function pauseRecording() {
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-          mediaRecorder.pause();
-          isPaused = true;
-          updateRecordButtons();
-          showToast('Tạm dừng quay');
+        @keyframes pulse-text {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.4;
+            }
         }
-      }
-
-      function resumeRecording() {
-        if (mediaRecorder && mediaRecorder.state === 'paused') {
-          mediaRecorder.resume();
-          isPaused = false;
-          updateRecordButtons();
-          showToast('Tiếp tục quay');
+        @keyframes recording-blink {
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.3;
+                transform: scale(1.3);
+            }
         }
-      }
-
-      function stopRecording() {
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-          mediaRecorder.stop();
-          logToConsole('Stop recording requested');
+        @keyframes slide-up {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-      }
-
-      function updateRecordButtons() {
-        startRecordBtn.disabled = isRecording;
-        pauseRecordBtn.disabled = !isRecording || isPaused;
-        resumeRecordBtn.disabled = !isPaused;
-        stopRecordBtn.disabled = !isRecording;
-      }
-
-      // ---------- TEXT OVERLAY ENGINE (giữ nguyên) ----------
-      function createTextObject(content = 'Text') {
-        return {
-          id: ++textIdCounter,
-          content,
-          x: 50 + Math.random()*30,
-          y: 50 + Math.random()*30,
-          fontSize: 32,
-          color: textColorPicker.value,
-          fontFamily: fontFamilySelect.value,
-          opacity: 1,
-          fontWeight: '700',
-          textAlign: 'left',
-          shadow: false,
-          bgBlur: false,
-          rotation: 0,
-          width: 200,
-          height: 50
-        };
-      }
-
-      function renderTextOverlays() {
-        textOverlayContainer.innerHTML = '';
-        textObjects.forEach(obj => {
-          const div = document.createElement('div');
-          div.className = 'text-overlay-item' + (obj.id === selectedTextId ? ' selected' : '');
-          div.id = `text-${obj.id}`;
-          div.textContent = obj.content;
-          div.style.left = obj.x + 'px';
-          div.style.top = obj.y + 'px';
-          div.style.fontSize = obj.fontSize + 'px';
-          div.style.color = obj.color;
-          div.style.fontFamily = obj.fontFamily;
-          div.style.opacity = obj.opacity;
-          div.style.fontWeight = obj.fontWeight;
-          div.style.textAlign = obj.textAlign;
-          div.style.transform = `rotate(${obj.rotation}deg)`;
-          if (obj.shadow) div.style.textShadow = '2px 2px 8px rgba(0,0,0,0.8), 0 0 15px currentColor';
-          if (obj.bgBlur) {
-            div.style.background = 'rgba(0,0,0,0.35)';
-            div.style.backdropFilter = 'blur(6px)';
-            div.style.webkitBackdropFilter = 'blur(6px)';
-            div.style.borderRadius = '8px';
-            div.style.padding = '4px 8px';
-          }
-          const resizeHandle = document.createElement('div');
-          resizeHandle.className = 'resize-handle';
-          div.appendChild(resizeHandle);
-          const rotateHandle = document.createElement('div');
-          rotateHandle.className = 'rotate-handle';
-          div.appendChild(rotateHandle);
-          div.addEventListener('mousedown', onTextMouseDown);
-          div.addEventListener('touchstart', onTextTouchStart, {passive: false});
-          textOverlayContainer.appendChild(div);
-        });
-        updateLayerList();
-      }
-
-      function updateLayerList() {
-        layerList.innerHTML = textObjects.map((obj, idx) => 
-          `<div style="padding:4px; cursor:pointer; background:${obj.id===selectedTextId?'var(--accent)':'transparent'}; color:${obj.id===selectedTextId?'#000':'inherit'}; border-radius:6px;" data-id="${obj.id}">Layer ${idx+1}: ${obj.content.substring(0,15)}</div>`
-        ).join('');
-        layerList.querySelectorAll('div').forEach(div => {
-          div.addEventListener('click', (e) => {
-            const id = parseInt(div.dataset.id);
-            selectText(id);
-          });
-        });
-      }
-
-      function selectText(id) {
-        selectedTextId = id;
-        const obj = textObjects.find(o => o.id === id);
-        if (obj) {
-          textColorPicker.value = obj.color;
-          fontFamilySelect.value = obj.fontFamily;
-          fontSizeSlider.value = obj.fontSize;
-          opacitySlider.value = obj.opacity;
-          fontWeightSelect.value = obj.fontWeight;
-          textAlignSelect.value = obj.textAlign;
-          shadowToggle.textContent = obj.shadow ? '✨ Bóng (on)' : '✨ Bóng';
-          bgBlurToggle.textContent = obj.bgBlur ? '🌫️ Nền mờ (on)' : '🌫️ Nền mờ';
+        @keyframes border-glow {
+            0%,
+            100% {
+                border-color: var(--accent);
+                box-shadow: 0 0 8px var(--neon);
+            }
+            50% {
+                border-color: var(--accent2);
+                box-shadow: 0 0 18px var(--neon2);
+            }
         }
-        renderTextOverlays();
-      }
 
-      function deleteSelectedText() {
-        if (selectedTextId) {
-          textObjects = textObjects.filter(o => o.id !== selectedTextId);
-          selectedTextId = null;
-          renderTextOverlays();
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-height: 100vh;
+            overflow: hidden;
         }
-      }
 
-      function duplicateSelectedText() {
-        const obj = textObjects.find(o => o.id === selectedTextId);
-        if (obj) {
-          const newObj = {...obj, id: ++textIdCounter, x: obj.x+20, y: obj.y+20};
-          textObjects.push(newObj);
-          selectText(newObj.id);
-          renderTextOverlays();
+        /* Header */
+        .header {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 100;
+            flex-shrink: 0;
+            transition: background var(--transition), border var(--transition);
         }
-      }
-
-      function updateSelectedTextProperty() {
-        const obj = textObjects.find(o => o.id === selectedTextId);
-        if (!obj) return;
-        obj.color = textColorPicker.value;
-        obj.fontFamily = fontFamilySelect.value;
-        obj.fontSize = parseInt(fontSizeSlider.value);
-        obj.opacity = parseFloat(opacitySlider.value);
-        obj.fontWeight = fontWeightSelect.value;
-        obj.textAlign = textAlignSelect.value;
-        renderTextOverlays();
-      }
-
-      function getEventPos(e, isTouch) {
-        if (isTouch) {
-          const touch = e.touches[0] || e.changedTouches[0];
-          return { clientX: touch.clientX, clientY: touch.clientY };
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        return { clientX: e.clientX, clientY: e.clientY };
-      }
-
-      function onTextMouseDown(e) {
-        e.preventDefault();
-        const div = e.currentTarget;
-        const id = parseInt(div.id.replace('text-',''));
-        selectText(id);
-        if (e.target.classList.contains('resize-handle')) {
-          startResize(id, e.clientX, e.clientY);
-          return;
+        .header-logo {
+            font-family: var(--font-mono);
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 1px;
+            text-shadow: 0 0 20px var(--neon);
         }
-        if (e.target.classList.contains('rotate-handle')) {
-          startRotate(id, e.clientX, e.clientY);
-          return;
+        .header-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+            animation: recording-blink 2s infinite;
         }
-        startDrag(id, e.clientX, e.clientY, false);
-      }
-
-      function onTextTouchStart(e) {
-        e.preventDefault();
-        const div = e.currentTarget;
-        const id = parseInt(div.id.replace('text-',''));
-        selectText(id);
-        const pos = getEventPos(e, true);
-        if (e.target.classList.contains('resize-handle')) {
-          startResize(id, pos.clientX, pos.clientY);
-          return;
+        .theme-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 1px solid var(--border2);
+            background: var(--glass2);
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition);
+            color: var(--text);
+            backdrop-filter: blur(10px);
         }
-        if (e.target.classList.contains('rotate-handle')) {
-          startRotate(id, pos.clientX, pos.clientY);
-          return;
+        .theme-btn:hover {
+            border-color: var(--accent);
+            box-shadow: var(--glow);
+            transform: rotate(20deg);
         }
-        startDrag(id, pos.clientX, pos.clientY, true);
-      }
 
-      function startDrag(id, clientX, clientY, isTouch) {
-        isDragging = true;
-        dragTargetId = id;
-        const obj = textObjects.find(o => o.id === id);
-        const rect = document.getElementById(`text-${id}`).getBoundingClientRect();
-        dragOffsetX = clientX - rect.left;
-        dragOffsetY = clientY - rect.top;
-        window.addEventListener(isTouch?'touchmove':'mousemove', onDragMove);
-        window.addEventListener(isTouch?'touchend':'mouseup', onDragEnd);
-      }
-
-      function onDragMove(e) {
-        if (!isDragging) return;
-        e.preventDefault();
-        const isTouch = e.type.startsWith('touch');
-        const pos = getEventPos(e, isTouch);
-        const containerRect = textOverlayContainer.getBoundingClientRect();
-        const newX = pos.clientX - containerRect.left - dragOffsetX;
-        const newY = pos.clientY - containerRect.top - dragOffsetY;
-        const obj = textObjects.find(o => o.id === dragTargetId);
-        if (obj) {
-          obj.x = Math.max(0, Math.min(newX, containerRect.width - 20));
-          obj.y = Math.max(0, Math.min(newY, containerRect.height - 20));
-          renderTextOverlays();
+        /* Main layout */
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
         }
-      }
 
-      function onDragEnd() {
-        isDragging = false;
-        window.removeEventListener('mousemove', onDragMove);
-        window.removeEventListener('mouseup', onDragEnd);
-        window.removeEventListener('touchmove', onDragMove);
-        window.removeEventListener('touchend', onDragEnd);
-      }
-
-      function startResize(id, clientX, clientY) {
-        isResizing = true;
-        resizeTargetId = id;
-        window.addEventListener('mousemove', onResizeMove);
-        window.addEventListener('mouseup', onResizeEnd);
-      }
-
-      function onResizeMove(e) {
-        if (!isResizing) return;
-        const obj = textObjects.find(o => o.id === resizeTargetId);
-        const containerRect = textOverlayContainer.getBoundingClientRect();
-        const newWidth = e.clientX - containerRect.left - obj.x;
-        const newHeight = e.clientY - containerRect.top - obj.y;
-        if (obj) {
-          obj.fontSize = Math.max(12, Math.min(120, Math.max(newWidth/3, newHeight/1.5)));
-          fontSizeSlider.value = obj.fontSize;
-          renderTextOverlays();
+        /* Camera area */
+        .camera-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+            position: relative;
+            min-width: 0;
         }
-      }
 
-      function onResizeEnd() {
-        isResizing = false;
-        window.removeEventListener('mousemove', onResizeMove);
-        window.removeEventListener('mouseup', onResizeEnd);
-      }
-
-      function startRotate(id, clientX, clientY) {
-        isRotating = true;
-        rotateTargetId = id;
-        const obj = textObjects.find(o => o.id === id);
-        const el = document.getElementById(`text-${id}`);
-        const rect = el.getBoundingClientRect();
-        rotateCenterX = rect.left + rect.width/2;
-        rotateCenterY = rect.top + rect.height/2;
-        rotateStartAngle = Math.atan2(clientY - rotateCenterY, clientX - rotateCenterX) * 180 / Math.PI - obj.rotation;
-        window.addEventListener('mousemove', onRotateMove);
-        window.addEventListener('mouseup', onRotateEnd);
-      }
-
-      function onRotateMove(e) {
-        if (!isRotating) return;
-        const obj = textObjects.find(o => o.id === rotateTargetId);
-        const angle = Math.atan2(e.clientY - rotateCenterY, e.clientX - rotateCenterX) * 180 / Math.PI - rotateStartAngle;
-        if (obj) {
-          obj.rotation = angle % 360;
-          renderTextOverlays();
+        /* Khung chứa camera với tỉ lệ tùy chỉnh */
+        .camera-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
         }
-      }
-
-      function onRotateEnd() {
-        isRotating = false;
-        window.removeEventListener('mousemove', onRotateMove);
-        window.removeEventListener('mouseup', onRotateEnd);
-      }
-
-      // ---------- THEME ----------
-      function toggleTheme() {
-        document.body.classList.toggle('light');
-        const isLight = document.body.classList.contains('light');
-        themeToggle.textContent = isLight ? '🌙 Dark' : '☀️ Light';
-        localStorage.setItem('theme', isLight ? 'light' : 'dark');
-      }
-
-      // ---------- VIDEO MODAL ----------
-      function downloadVideo() {
-        if (!videoBlob) return showToast('Chưa có video', 'error');
-        const a = document.createElement('a');
-        const ext = videoBlob.type.includes('mp4') ? 'mp4' : 'webm';
-        const filename = `video_${new Date().toISOString().replace(/[:.]/g,'-')}.${ext}`;
-        a.href = URL.createObjectURL(videoBlob);
-        a.download = filename;
-        a.click();
-        showToast('Đang tải video...');
-      }
-
-      function deleteVideo() {
-        if (videoBlobUrl) URL.revokeObjectURL(videoBlobUrl);
-        videoBlob = null;
-        videoBlobUrl = null;
-        reviewVideo.src = '';
-        videoModal.style.display = 'none';
-        sizeDisplay.textContent = '0MB';
-      }
-
-      // ---------- INIT ----------
-      async function init() {
-        // Khôi phục theme
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'light') {
-          document.body.classList.add('light');
-          themeToggle.textContent = '🌙 Dark';
+        .aspect-ratio-box {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
         }
-        
-        // Khôi phục aspect ratio và mirror
-        const savedAspect = localStorage.getItem('aspectRatio') || '16:9';
-        currentAspectRatio = savedAspect;
-        aspectRatioSelect.value = savedAspect;
-        applyAspectRatio(savedAspect);
-        
-        const savedMirror = localStorage.getItem('mirror') === 'true';
-        isMirrored = savedMirror;
-        mirrorToggle.checked = savedMirror;
-        applyMirror(savedMirror);
-        
-        // Loading screen
-        setTimeout(() => { loadingScreen.classList.add('hidden'); }, 1000);
-        
-        // Camera
-        await startCamera('user');
-        
-        // Event listeners cho aspect ratio và mirror
-        aspectRatioSelect.addEventListener('change', (e) => {
-          applyAspectRatio(e.target.value);
-        });
-        mirrorToggle.addEventListener('change', (e) => {
-          applyMirror(e.target.checked);
-        });
-        
-        // Các listener khác
-        themeToggle.addEventListener('click', toggleTheme);
-        switchCameraBtn.addEventListener('click', switchCamera);
-        startRecordBtn.addEventListener('click', startRecording);
-        pauseRecordBtn.addEventListener('click', pauseRecording);
-        resumeRecordBtn.addEventListener('click', resumeRecording);
-        stopRecordBtn.addEventListener('click', stopRecording);
-        addTextBtn.addEventListener('click', () => {
-          const content = newTextInput.value || 'Text';
-          const newObj = createTextObject(content);
-          textObjects.push(newObj);
-          selectText(newObj.id);
-          renderTextOverlays();
-        });
-        duplicateTextBtn.addEventListener('click', duplicateSelectedText);
-        deleteTextBtn.addEventListener('click', deleteSelectedText);
-        textColorPicker.addEventListener('input', updateSelectedTextProperty);
-        fontFamilySelect.addEventListener('change', updateSelectedTextProperty);
-        fontSizeSlider.addEventListener('input', updateSelectedTextProperty);
-        opacitySlider.addEventListener('input', updateSelectedTextProperty);
-        fontWeightSelect.addEventListener('change', updateSelectedTextProperty);
-        textAlignSelect.addEventListener('change', updateSelectedTextProperty);
-        shadowToggle.addEventListener('click', () => {
-          const obj = textObjects.find(o => o.id === selectedTextId);
-          if (obj) { obj.shadow = !obj.shadow; updateSelectedTextProperty(); }
-        });
-        bgBlurToggle.addEventListener('click', () => {
-          const obj = textObjects.find(o => o.id === selectedTextId);
-          if (obj) { obj.bgBlur = !obj.bgBlur; updateSelectedTextProperty(); }
-        });
-        downloadVideoBtn.addEventListener('click', downloadVideo);
-        deleteVideoBtn.addEventListener('click', deleteVideo);
-        closeModalBtn.addEventListener('click', () => { videoModal.style.display = 'none'; });
-        videoModal.addEventListener('click', (e) => { if (e.target === videoModal) videoModal.style.display = 'none'; });
-        
-        renderTextOverlays();
-        logToConsole('Ứng dụng đã sẵn sàng với đầy đủ tính năng.');
-      }
+        /* Các class tỉ lệ khung */
+        .ratio-1-1 {
+            aspect-ratio: 1 / 1;
+            max-height: 100%;
+            max-width: 100%;
+        }
+        .ratio-4-3 {
+            aspect-ratio: 4 / 3;
+            max-height: 100%;
+            max-width: 100%;
+        }
+        .ratio-3-4 {
+            aspect-ratio: 3 / 4;
+            max-height: 100%;
+            max-width: 100%;
+        }
+        .ratio-16-9 {
+            aspect-ratio: 16 / 9;
+            max-height: 100%;
+            max-width: 100%;
+        }
+        .ratio-9-16 {
+            aspect-ratio: 9 / 16;
+            max-height: 100%;
+            max-width: 100%;
+        }
+        .ratio-full {
+            aspect-ratio: auto;
+            width: 100%;
+            height: 100%;
+        }
+        video#camera-preview {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: #000;
+            transition: transform 0.2s;
+        }
+        /* Lật gương nếu bật */
+        video#camera-preview.mirror {
+            transform: scaleX(-1);
+        }
 
-      init();
-    })();
-  </script>
+        /* Overlay text container */
+        .overlay-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .overlay-container.active {
+            pointer-events: auto;
+        }
+        .text-overlay-item {
+            position: absolute;
+            cursor: move;
+            white-space: nowrap;
+            user-select: none;
+            -webkit-user-select: none;
+            transform-origin: center center;
+            pointer-events: auto;
+            transition: box-shadow 0.15s;
+            line-height: 1.2;
+        }
+        .text-overlay-item.selected {
+            outline: 2px dashed var(--accent);
+            outline-offset: 4px;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+            z-index: 20 !important;
+        }
+        .resize-handle {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: var(--accent);
+            border: 2px solid #fff;
+            border-radius: 50%;
+            cursor: nwse-resize;
+            bottom: -8px;
+            right: -8px;
+            z-index: 25;
+            display: none;
+            box-shadow: 0 0 8px var(--neon);
+        }
+        .text-overlay-item.selected .resize-handle {
+            display: block;
+        }
+        .rotate-handle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: var(--accent2);
+            border: 2px solid #fff;
+            border-radius: 50%;
+            cursor: grab;
+            top: -28px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 25;
+            display: none;
+            font-size: 10px;
+            color: #fff;
+            align-items: center;
+            justify-content: center;
+        }
+        .text-overlay-item.selected .rotate-handle {
+            display: flex;
+        }
+        .recording-indicator {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 14px;
+            border-radius: 20px;
+            z-index: 30;
+            backdrop-filter: blur(6px);
+            border: 1px solid var(--recording-pulse);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        .recording-indicator.active {
+            opacity: 1;
+            animation: border-glow 1.2s ease-in-out infinite;
+        }
+        .rec-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--recording-pulse);
+            animation: recording-blink 0.7s ease-in-out infinite;
+        }
+        .rec-time {
+            font-family: var(--font-mono);
+            color: #fff;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .camera-switch-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border2);
+            color: #fff;
+            cursor: pointer;
+            z-index: 30;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition);
+        }
+        .camera-switch-btn:hover {
+            border-color: var(--accent);
+            box-shadow: var(--glow);
+            transform: rotate(180deg);
+        }
+        .camera-label {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: var(--glass);
+            backdrop-filter: blur(6px);
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.7rem;
+            color: var(--text2);
+            z-index: 30;
+            font-family: var(--font-mono);
+            border: 1px solid var(--border);
+            pointer-events: none;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 340px;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            flex-shrink: 0;
+            z-index: 50;
+            padding: 16px;
+            gap: 14px;
+            transition: all var(--transition);
+        }
+        .sidebar-section {
+            background: var(--surface);
+            border-radius: var(--radius-sm);
+            padding: 14px;
+            border: 1px solid var(--border);
+        }
+        .sidebar-section h4 {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .sidebar-section h4::before {
+            content: '';
+            width: 4px;
+            height: 14px;
+            background: var(--accent);
+            border-radius: 2px;
+            box-shadow: 0 0 8px var(--neon);
+        }
+
+        .btn {
+            font-family: var(--font);
+            font-size: 0.8rem;
+            padding: 8px 16px;
+            border-radius: var(--radius-xs);
+            border: 1px solid var(--border2);
+            background: var(--glass2);
+            color: var(--text);
+            cursor: pointer;
+            transition: all var(--transition);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        .btn:hover {
+            border-color: var(--accent);
+            box-shadow: var(--glow);
+            transform: translateY(-1px);
+            color: var(--accent);
+        }
+        .btn.accent {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            font-weight: 700;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.35);
+        }
+        .btn.danger {
+            border-color: var(--accent3);
+            color: var(--accent3);
+        }
+        .btn.sm {
+            padding: 5px 10px;
+            font-size: 0.7rem;
+            border-radius: 4px;
+        }
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        input[type="text"],
+        input[type="range"],
+        input[type="color"],
+        select {
+            font-family: var(--font);
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: var(--radius-xs);
+            padding: 6px 10px;
+            font-size: 0.8rem;
+            outline: none;
+            transition: all var(--transition);
+        }
+        input[type="text"]:focus,
+        select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 6px;
+            background: var(--border2);
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--neon);
+            border: 2px solid #fff;
+        }
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0;
+        }
+        .slider-group label {
+            font-size: 0.7rem;
+            color: var(--text3);
+            min-width: 50px;
+            font-family: var(--font-mono);
+        }
+        .slider-group .val {
+            font-size: 0.7rem;
+            color: var(--accent);
+            min-width: 30px;
+            text-align: right;
+            font-family: var(--font-mono);
+        }
+
+        .layer-list {
+            max-height: 140px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .layer-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            background: var(--bg2);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            border: 1px solid transparent;
+            font-family: var(--font-mono);
+            transition: all var(--transition);
+        }
+        .layer-item.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
+        }
+        .layer-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .layer-del {
+            cursor: pointer;
+            color: var(--accent3);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .layer-del:hover {
+            background: var(--accent3);
+            color: #fff;
+        }
+
+        /* Control bar */
+        .control-bar {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            z-index: 100;
+            flex-shrink: 0;
+            justify-content: center;
+            transition: all var(--transition);
+        }
+        .record-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: 3px solid var(--accent3);
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition);
+            position: relative;
+        }
+        .record-btn .inner {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--accent3);
+            box-shadow: 0 0 15px rgba(255, 60, 110, 0.5);
+            transition: all var(--transition);
+        }
+        .record-btn.recording .inner {
+            border-radius: 4px;
+            width: 20px;
+            height: 20px;
+            animation: recording-blink 0.7s ease-in-out infinite;
+        }
+        .stats-bar {
+            display: flex;
+            gap: 16px;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text3);
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--surface);
+            padding: 5px 10px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .toast {
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            padding: 12px 18px;
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            color: var(--text);
+            box-shadow: var(--shadow);
+            animation: slide-up 0.35s ease-out;
+            backdrop-filter: blur(10px);
+            font-family: var(--font-mono);
+            max-width: 350px;
+        }
+        .toast.success {
+            border-left: 3px solid var(--success);
+        }
+        .toast.error {
+            border-left: 3px solid var(--accent3);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .modal {
+            background: var(--surface);
+            border-radius: var(--radius);
+            border: 1px solid var(--border2);
+            padding: 24px;
+            max-width: 90vw;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow), var(--glow);
+        }
+        #review-video {
+            width: 100%;
+            border-radius: var(--radius-sm);
+            background: #000;
+            max-height: 50vh;
+        }
+
+        .mini-console {
+            background: #0a0a10;
+            border-radius: var(--radius-sm);
+            padding: 10px;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: #0f0;
+            max-height: 100px;
+            overflow-y: auto;
+            border: 1px solid #1a3a1a;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                max-height: 40vh;
+                border-left: none;
+                border-top: 1px solid var(--border);
+            }
+            .control-bar {
+                gap: 6px;
+                padding: 8px 10px;
+            }
+            .record-btn {
+                width: 44px;
+                height: 44px;
+            }
+            .record-btn .inner {
+                width: 22px;
+                height: 22px;
+            }
+            .record-btn.recording .inner {
+                width: 16px;
+                height: 16px;
+            }
+        }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <!-- Loading -->
+    <div id="loading-screen">
+        <div class="loader-ring"></div>
+        <div class="loader-text">INITIALIZING DEVCAM PRO...</div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- App -->
+    <div class="app-container" id="app-container" style="opacity:0; transition: opacity 0.6s;">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-brand">
+                <span class="header-logo">&lt;DEVCAM/&gt;</span>
+                <span class="header-dot" id="status-dot"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;font-size:0.75rem;color:var(--text3);">
+                <span id="cam-label-header">📷 Camera Ready</span>
+                <span>🎤 Mic On</span>
+            </div>
+            <button class="theme-btn" id="theme-toggle" title="Chuyển theme">🌓</button>
+        </header>
+
+        <!-- Main -->
+        <div class="main-content">
+            <div class="camera-area">
+                <div class="camera-wrapper" id="camera-wrapper">
+                    <!-- Hộp tỉ lệ khung hình -->
+                    <div class="aspect-ratio-box ratio-full" id="aspect-box">
+                        <video id="camera-preview" autoplay playsinline muted></video>
+                    </div>
+                    <!-- Overlay text -->
+                    <div class="overlay-container active" id="overlay-container"></div>
+                    <!-- Recording indicator -->
+                    <div class="recording-indicator" id="recording-indicator">
+                        <span class="rec-dot"></span>
+                        <span class="rec-time" id="rec-time-display">00:00</span>
+                    </div>
+                    <!-- Nút đổi cam -->
+                    <button class="camera-switch-btn" id="cam-switch-btn" title="Đổi camera">🔄</button>
+                    <div class="camera-label" id="camera-label">📷 Camera Trước</div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <!-- Khung hình & Gương -->
+                <div class="sidebar-section">
+                    <h4>📐 Tỉ lệ khung hình</h4>
+                    <select id="aspect-ratio-select" style="width:100%;margin-bottom:8px;">
+                        <option value="full">Full (lấp đầy)</option>
+                        <option value="1-1">1:1 (Vuông)</option>
+                        <option value="4-3">4:3 (Ngang)</option>
+                        <option value="3-4">3:4 (Dọc)</option>
+                        <option value="16-9">16:9 (Ngang rộng)</option>
+                        <option value="9-16">9:16 (Dọc cao)</option>
+                    </select>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <label style="font-size:0.75rem;display:flex;align-items:center;gap:4px;cursor:pointer;">
+                            <input type="checkbox" id="mirror-toggle"> Gương (Mirror)
+                        </label>
+                    </div>
+                    <p style="font-size:0.65rem;color:var(--text3);margin-top:4px;">Video xuất ra không bị lật ngược</p>
+                </div>
+
+                <!-- Text overlay -->
+                <div class="sidebar-section">
+                    <h4>✏️ Text Overlay</h4>
+                    <div class="btn-group" style="margin-bottom:8px;">
+                        <button class="btn sm accent" id="btn-add-text">+ Thêm</button>
+                        <button class="btn sm" id="btn-duplicate-text">📋 Nhân bản</button>
+                        <button class="btn sm danger" id="btn-delete-text">🗑 Xóa</button>
+                    </div>
+                    <input type="text" id="text-input" placeholder="Nhập text..." value="Hello World" style="width:100%;margin-bottom:6px;">
+                    <div class="slider-group">
+                        <label>Size</label><input type="range" id="font-size-slider" min="12" max="120" value="36"><span class="val" id="font-size-val">36px</span>
+                    </div>
+                    <div class="slider-group">
+                        <label>Opacity</label><input type="range" id="opacity-slider" min="10" max="100" value="100"><span class="val" id="opacity-val">100%</span>
+                    </div>
+                    <div class="slider-group">
+                        <label>Đậm</label><input type="range" id="weight-slider" min="100" max="900" step="100" value="700"><span class="val" id="weight-val">700</span>
+                    </div>
+                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0;">
+                        <label style="font-size:0.7rem;">Màu</label><input type="color" id="color-picker" value="#ffffff">
+                        <select id="font-select" style="font-size:0.7rem;">
+                            <option value="'Segoe UI', sans-serif">Segoe UI</option>
+                            <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
+                            <option value="'Inter', sans-serif">Inter</option>
+                            <option value="'Roboto', sans-serif">Roboto</option>
+                        </select>
+                    </div>
+                    <div class="btn-group" style="margin:4px 0;">
+                        <button class="btn sm" id="btn-align-left">⬅</button>
+                        <button class="btn sm" id="btn-align-center">⬤</button>
+                        <button class="btn sm" id="btn-align-right">➡</button>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn sm" id="btn-shadow">✨ Shadow</button>
+                        <button class="btn sm" id="btn-glow">💫 Glow</button>
+                        <button class="btn sm" id="btn-bg-blur">🧊 Nền Blur</button>
+                    </div>
+                </div>
+
+                <!-- Layer manager -->
+                <div class="sidebar-section">
+                    <h4>📑 Layer</h4>
+                    <div class="layer-list" id="layer-list">
+                        <span style="font-size:0.7rem;color:var(--text3);">Chưa có layer</span>
+                    </div>
+                </div>
+
+                <!-- Console -->
+                <div class="sidebar-section">
+                    <h4>💻 Console</h4>
+                    <div class="mini-console" id="mini-console">
+                        <div>&gt; DevCam Pro ready</div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Control bar -->
+        <div class="control-bar">
+            <button class="record-btn" id="btn-record" title="Bắt đầu / Dừng quay"><span class="inner"></span></button>
+            <button class="btn" id="btn-pause">⏸ Tạm dừng</button>
+            <button class="btn" id="btn-resume" style="display:none">▶ Tiếp tục</button>
+            <button class="btn danger" id="btn-stop">⏹ Dừng</button>
+            <button class="btn" id="btn-view-video">👁 Xem lại</button>
+            <button class="btn accent" id="btn-download">⬇ Xuất MP4</button>
+            <button class="btn" id="btn-clear-video">🗑 Xóa</button>
+            <div style="flex:1;min-width:10px;"></div>
+            <div class="stats-bar">
+                <span>⏱<span id="live-time">00:00</span></span>
+                <span>FPS:<span id="live-fps">0</span></span>
+                <span>💾<span id="live-size">0 KB</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review modal -->
+    <div class="modal-overlay" id="review-modal" style="display:none">
+        <div class="modal">
+            <h3>🎬 Video Review</h3>
+            <video id="review-video" controls playsinline></video>
+            <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">
+                <button class="btn" id="btn-close-review">Đóng</button>
+                <button class="btn accent" id="btn-download-from-review">⬇ Tải MP4</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ==================== TOAST ====================
+            const Toast = {
+                container: document.getElementById('toast-container'),
+                show(msg, type = 'info', duration = 3000) {
+                    const el = document.createElement('div');
+                    el.className = `toast ${type}`;
+                    el.innerHTML = `<span>${type==='success'?'✅':type==='error'?'❌':'ℹ️'}</span> ${msg}`;
+                    this.container.appendChild(el);
+                    setTimeout(() => {
+                        el.style.opacity = '0';
+                        el.style.transform = 'translateX(50px)';
+                        el.style.transition = '0.3s';
+                        setTimeout(() => el.remove(), 300);
+                    }, duration);
+                }
+            };
+
+            // ==================== MINI CONSOLE ====================
+            const MiniConsole = {
+                el: document.getElementById('mini-console'),
+                log(msg) {
+                    const div = document.createElement('div');
+                    div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+                    this.el.appendChild(div);
+                    this.el.scrollTop = this.el.scrollHeight;
+                    if (this.el.children.length > 30) this.el.children[0].remove();
+                }
+            };
+
+            // ==================== CAMERA ====================
+            const CameraManager = {
+                stream: null,
+                videoEl: document.getElementById('camera-preview'),
+                facingMode: 'user',
+                devices: [],
+
+                async init() {
+                    await this.getDevices();
+                    await this.startStream();
+                    MiniConsole.log('Camera ready');
+                    return true;
+                },
+                async getDevices() {
+                    try {
+                        const tmp = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                        tmp.getTracks().forEach(t => t.stop());
+                    } catch (e) {}
+                    const all = await navigator.mediaDevices.enumerateDevices();
+                    this.devices = all.filter(d => d.kind === 'videoinput');
+                },
+                async startStream(deviceId = null) {
+                    this.stopStream();
+                    const constraints = {
+                        video: {
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 },
+                            frameRate: { ideal: 30 }
+                        },
+                        audio: true
+                    };
+                    if (deviceId) {
+                        constraints.video.deviceId = { exact: deviceId };
+                        const dev = this.devices.find(d => d.deviceId === deviceId);
+                        if (dev) {
+                            const label = (dev.label || '').toLowerCase();
+                            this.facingMode = label.includes('back') || label.includes('rear') ||
+                                label.includes('environment') ? 'environment' : 'user';
+                        }
+                    } else {
+                        constraints.video.facingMode = this.facingMode;
+                    }
+                    this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    this.videoEl.srcObject = this.stream;
+                    await this.videoEl.play();
+                    this.updateLabel();
+                },
+                stopStream() {
+                    if (this.stream) {
+                        this.stream.getTracks().forEach(t => t.stop());
+                        this.stream = null;
+                        this.videoEl.srcObject = null;
+                    }
+                },
+                async switchCamera() {
+                    if (RecorderManager.isRecording && !RecorderManager.isPaused) {
+                        Toast.show('Vui lòng tạm dừng trước khi đổi camera', 'warning');
+                        return;
+                    }
+                    const wasRecording = RecorderManager.isRecording;
+                    const chunks = wasRecording ? [...RecorderManager.chunks] : [];
+                    if (wasRecording) RecorderManager.stopRecording(true);
+                    this.facingMode = this.facingMode === 'user' ? 'environment' : 'user';
+                    await this.startStream();
+                    if (wasRecording) {
+                        RecorderManager.chunks = chunks;
+                        RecorderManager.startRecording(this.stream);
+                    }
+                    Toast.show(`Đã chuyển camera ${this.facingMode==='user'?'trước':'sau'}`, 'info');
+                },
+                updateLabel() {
+                    document.getElementById('camera-label').textContent =
+                        `📷 Camera ${this.facingMode==='user'?'Trước (Selfie)':'Sau (Rear)'}`;
+                    document.getElementById('cam-label-header').textContent =
+                        `📷 Camera ${this.facingMode==='user'?'Trước':'Sau'}`;
+                },
+                getStream() { return this.stream; }
+            };
+
+            // ==================== RECORDER ====================
+            const RecorderManager = {
+                mediaRecorder: null,
+                chunks: [],
+                isRecording: false,
+                isPaused: false,
+                startTime: 0,
+                pausedDuration: 0,
+                pauseStartTime: 0,
+                recordedBlob: null,
+                totalSize: 0,
+                currentFps: 0,
+                fpsCounter: 0,
+                lastFpsTime: 0,
+                fpsInterval: null,
+
+                startRecording(stream) {
+                    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ?
+                        'video/webm;codecs=vp9,opus' : 'video/webm';
+                    this.mediaRecorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 4000000 });
+                    this.chunks = [];
+                    this.isRecording = true;
+                    this.isPaused = false;
+                    this.startTime = Date.now();
+                    this.pausedDuration = 0;
+                    this.totalSize = 0;
+                    this.recordedBlob = null;
+                    this.currentFps = 0;
+                    this.fpsCounter = 0;
+                    this.lastFpsTime = performance.now();
+                    this.mediaRecorder.ondataavailable = e => {
+                        if (e.data.size > 0) {
+                            this.chunks.push(e.data);
+                            this.totalSize += e.data.size;
+                            this.fpsCounter++;
+                        }
+                    };
+                    this.mediaRecorder.onstop = () => {
+                        if (this.chunks.length && !this._internalStop) {
+                            this.recordedBlob = new Blob(this.chunks, { type: mime });
+                        }
+                        this._internalStop = false;
+                    };
+                    this.mediaRecorder.start(500);
+                    document.getElementById('recording-indicator').classList.add('active');
+                    document.getElementById('btn-record').classList.add('recording');
+                    document.getElementById('btn-pause').style.display = '';
+                    document.getElementById('btn-resume').style.display = 'none';
+                    this.fpsInterval = setInterval(() => {
+                        const now = performance.now();
+                        const elapsed = (now - this.lastFpsTime) / 1000;
+                        if (elapsed >= 1) {
+                            this.currentFps = Math.round(this.fpsCounter / elapsed);
+                            this.fpsCounter = 0;
+                            this.lastFpsTime = now;
+                        }
+                    }, 1000);
+                    MiniConsole.log('Recording started');
+                },
+                pauseRecording() {
+                    if (!this.isRecording || this.isPaused) return;
+                    this.mediaRecorder.pause();
+                    this.isPaused = true;
+                    this.pauseStartTime = Date.now();
+                    document.getElementById('recording-indicator').classList.remove('active');
+                    document.getElementById('btn-record').classList.remove('recording');
+                    document.getElementById('btn-pause').style.display = 'none';
+                    document.getElementById('btn-resume').style.display = '';
+                    clearInterval(this.fpsInterval);
+                },
+                resumeRecording() {
+                    if (!this.isRecording || !this.isPaused) return;
+                    this.mediaRecorder.resume();
+                    this.isPaused = false;
+                    this.pausedDuration += Date.now() - this.pauseStartTime;
+                    document.getElementById('recording-indicator').classList.add('active');
+                    document.getElementById('btn-record').classList.add('recording');
+                    document.getElementById('btn-pause').style.display = '';
+                    document.getElementById('btn-resume').style.display = 'none';
+                    this.lastFpsTime = performance.now();
+                    this.fpsCounter = 0;
+                    this.fpsInterval = setInterval(() => {
+                        const now = performance.now();
+                        const elapsed = (now - this.lastFpsTime) / 1000;
+                        if (elapsed >= 1) {
+                            this.currentFps = Math.round(this.fpsCounter / elapsed);
+                            this.fpsCounter = 0;
+                            this.lastFpsTime = now;
+                        }
+                    }, 1000);
+                },
+                stopRecording(internal = false) {
+                    this._internalStop = internal;
+                    if (this.mediaRecorder && (this.mediaRecorder.state === 'recording' || this.mediaRecorder
+                            .state === 'paused')) {
+                        if (this.isPaused) {
+                            this.pausedDuration += Date.now() - this.pauseStartTime;
+                            this.isPaused = false;
+                        }
+                        this.mediaRecorder.stop();
+                    }
+                    this.isRecording = false;
+                    this.isPaused = false;
+                    document.getElementById('recording-indicator').classList.remove('active');
+                    document.getElementById('btn-record').classList.remove('recording');
+                    document.getElementById('btn-pause').style.display = '';
+                    document.getElementById('btn-resume').style.display = 'none';
+                    clearInterval(this.fpsInterval);
+                    if (!internal) MiniConsole.log('Recording stopped');
+                },
+                getElapsedSeconds() {
+                    if (!this.isRecording) return 0;
+                    let elapsed = Date.now() - this.startTime - this.pausedDuration;
+                    if (this.isPaused) elapsed -= (Date.now() - this.pauseStartTime);
+                    return Math.max(0, Math.floor(elapsed / 1000));
+                },
+                getBlob() {
+                    return this.recordedBlob || (this.chunks.length ? new Blob(this.chunks) : null);
+                },
+                clearRecording() {
+                    this.chunks = [];
+                    this.recordedBlob = null;
+                    this.totalSize = 0;
+                    this.isRecording = false;
+                    this.isPaused = false;
+                    document.getElementById('recording-indicator').classList.remove('active');
+                    document.getElementById('btn-record').classList.remove('recording');
+                    document.getElementById('btn-pause').style.display = '';
+                    document.getElementById('btn-resume').style.display = 'none';
+                    clearInterval(this.fpsInterval);
+                }
+            };
+
+            // ==================== TEXT OVERLAY ====================
+            const TextOverlayManager = {
+                container: document.getElementById('overlay-container'),
+                wrapper: document.getElementById('camera-wrapper'),
+                items: [],
+                selectedId: null,
+                idCounter: 0,
+
+                addItem(text = 'New Text', x = 50, y = 50) {
+                    const id = 'text-' + (++this.idCounter);
+                    const item = {
+                        id,
+                        text,
+                        x,
+                        y,
+                        fontSize: 36,
+                        color: '#ffffff',
+                        fontFamily: "'Segoe UI', sans-serif",
+                        opacity: 1,
+                        fontWeight: 700,
+                        textAlign: 'left',
+                        shadow: false,
+                        glow: false,
+                        bgBlur: false,
+                        rotation: 0
+                    };
+                    this.items.push(item);
+                    this.renderItem(item);
+                    this.selectItem(id);
+                    this.updateLayerList();
+                    return item;
+                },
+                duplicateItem() {
+                    if (!this.selectedId) return Toast.show('Chọn layer trước', 'warning');
+                    const orig = this.items.find(i => i.id === this.selectedId);
+                    if (!orig) return;
+                    const item = this.addItem(orig.text + ' (copy)', orig.x + 30, orig.y + 30);
+                    Object.assign(item, {
+                        fontSize: orig.fontSize,
+                        color: orig.color,
+                        fontFamily: orig.fontFamily,
+                        opacity: orig.opacity,
+                        fontWeight: orig.fontWeight,
+                        textAlign: orig.textAlign,
+                        shadow: orig.shadow,
+                        glow: orig.glow,
+                        bgBlur: orig.bgBlur,
+                        rotation: orig.rotation
+                    });
+                    this.updateItem(item.id);
+                    this.selectItem(item.id);
+                },
+                deleteItem(id = null) {
+                    const target = id || this.selectedId;
+                    if (!target) return Toast.show('Chọn layer để xóa', 'warning');
+                    document.getElementById(target)?.remove();
+                    this.items = this.items.filter(i => i.id !== target);
+                    if (this.selectedId === target) this.selectedId = null;
+                    this.updateLayerList();
+                },
+                selectItem(id) {
+                    document.querySelectorAll('.text-overlay-item.selected').forEach(el => el.classList.remove(
+                        'selected'));
+                    this.selectedId = id;
+                    const el = document.getElementById(id);
+                    if (el) el.classList.add('selected');
+                    this.updateLayerList();
+                    this.updateSidebarFromSelection();
+                },
+                renderItem(item) {
+                    const old = document.getElementById(item.id);
+                    if (old) old.remove();
+                    const el = document.createElement('div');
+                    el.id = item.id;
+                    el.className = 'text-overlay-item';
+                    el.textContent = item.text;
+                    this.applyStyle(el, item);
+                    const resizeHandle = document.createElement('div');
+                    resizeHandle.className = 'resize-handle';
+                    el.appendChild(resizeHandle);
+                    const rotateHandle = document.createElement('div');
+                    rotateHandle.className = 'rotate-handle';
+                    rotateHandle.textContent = '↻';
+                    el.appendChild(rotateHandle);
+                    el.addEventListener('pointerdown', e => this.onDragStart(e, item.id));
+                    resizeHandle.addEventListener('pointerdown', e => this.onResizeStart(e, item.id));
+                    rotateHandle.addEventListener('pointerdown', e => this.onRotateStart(e, item.id));
+                    el.addEventListener('click', e => { e.stopPropagation();
+                        this.selectItem(item.id); });
+                    this.container.appendChild(el);
+                    if (this.selectedId === item.id) el.classList.add('selected');
+                },
+                applyStyle(el, item) {
+                    el.style.cssText = `
+                        left: ${item.x}px; top: ${item.y}px;
+                        font-size: ${item.fontSize}px; color: ${item.color};
+                        font-family: ${item.fontFamily}; opacity: ${item.opacity};
+                        font-weight: ${item.fontWeight}; text-align: ${item.textAlign};
+                        transform: rotate(${item.rotation}deg);
+                        ${item.shadow ? 'text-shadow: 2px 2px 8px rgba(0,0,0,0.7);' : ''}
+                        ${item.glow ? 'text-shadow: 0 0 15px ' + item.color + ', 0 0 30px ' + item.color + ';' : ''}
+                        ${item.bgBlur ? 'background: rgba(0,0,0,0.35); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); padding: 6px 12px; border-radius: 8px;' : ''}
+                    `;
+                },
+                updateItem(id) {
+                    const item = this.items.find(i => i.id === id);
+                    if (!item) return;
+                    const el = document.getElementById(id);
+                    if (!el) { this.renderItem(item); return; }
+                    el.textContent = item.text;
+                    this.applyStyle(el, item);
+                    if (this.selectedId === id) el.classList.add('selected');
+                    else el.classList.remove('selected');
+                },
+                getItemById(id) { return this.items.find(i => i.id === id); },
+                getSelectedItem() { return this.selectedId ? this.getItemById(this.selectedId) : null; },
+                applyToSelected(prop, value) {
+                    const item = this.getSelectedItem();
+                    if (!item) return Toast.show('Chọn layer trước', 'warning');
+                    item[prop] = value;
+                    this.updateItem(item.id);
+                },
+                onDragStart(e, id) {
+                    if (e.target.classList.contains('resize-handle') || e.target.classList.contains(
+                        'rotate-handle')) return;
+                    this.selectItem(id);
+                    const item = this.getItemById(id);
+                    if (!item) return;
+                    const el = document.getElementById(id);
+                    const rect = el.getBoundingClientRect();
+                    this.dragOffset = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+                    this.dragItemId = id;
+                    el.setPointerCapture(e.pointerId);
+                    const move = ev => {
+                        if (!this.dragItemId) return;
+                        const wrapperRect = this.wrapper.getBoundingClientRect();
+                        const nx = ev.clientX - wrapperRect.left - this.dragOffset.x;
+                        const ny = ev.clientY - wrapperRect.top - this.dragOffset.y;
+                        const it = this.getItemById(this.dragItemId);
+                        if (it) { it.x = Math.max(0, Math.min(nx, wrapperRect.width - 50));
+                            it.y = Math.max(0, Math.min(ny, wrapperRect.height - 20));
+                            this.updateItem(it.id); }
+                    };
+                    const up = () => {
+                        this.dragItemId = null;
+                        el.removeEventListener('pointermove', move);
+                        el.removeEventListener('pointerup', up);
+                    };
+                    el.addEventListener('pointermove', move);
+                    el.addEventListener('pointerup', up);
+                    e.preventDefault();
+                },
+                onResizeStart(e, id) {
+                    this.selectItem(id);
+                    const item = this.getItemById(id);
+                    if (!item) return;
+                    const el = document.getElementById(id);
+                    this.resizeStart = { x: e.clientX, y: e.clientY, size: item.fontSize };
+                    el.setPointerCapture(e.pointerId);
+                    const move = ev => {
+                        const dx = ev.clientX - this.resizeStart.x;
+                        const dy = ev.clientY - this.resizeStart.y;
+                        const ns = Math.max(12, Math.min(120, this.resizeStart.size + Math.max(dx, dy)));
+                        const it = this.getItemById(id);
+                        if (it) { it.fontSize = Math.round(ns);
+                            this.updateItem(id);
+                            this.updateSidebarFromSelection(); }
+                    };
+                    const up = () => {
+                        el.removeEventListener('pointermove', move);
+                        el.removeEventListener('pointerup', up);
+                    };
+                    el.addEventListener('pointermove', move);
+                    el.addEventListener('pointerup', up);
+                    e.stopPropagation();
+                    e.preventDefault();
+                },
+                onRotateStart(e, id) {
+                    this.selectItem(id);
+                    const item = this.getItemById(id);
+                    if (!item) return;
+                    const el = document.getElementById(id);
+                    const rect = el.getBoundingClientRect();
+                    const cx = rect.left + rect.width / 2;
+                    const cy = rect.top + rect.height / 2;
+                    const startAngle = Math.atan2(e.clientY - cy, e.clientX - cx) * (180 / Math.PI);
+                    this.rotateData = { id, startAngle, origRotation: item.rotation, cx, cy };
+                    el.setPointerCapture(e.pointerId);
+                    const move = ev => {
+                        const ang = Math.atan2(ev.clientY - this.rotateData.cy, ev.clientX - this.rotateData
+                            .cx) * (180 / Math.PI);
+                        const it = this.getItemById(id);
+                        if (it) { it.rotation = Math.round(this.rotateData.origRotation + (ang - this
+                                .rotateData.startAngle)) % 360;
+                            this.updateItem(id); }
+                    };
+                    const up = () => {
+                        el.removeEventListener('pointermove', move);
+                        el.removeEventListener('pointerup', up);
+                    };
+                    el.addEventListener('pointermove', move);
+                    el.addEventListener('pointerup', up);
+                    e.stopPropagation();
+                    e.preventDefault();
+                },
+                updateLayerList() {
+                    const list = document.getElementById('layer-list');
+                    if (!this.items.length) {
+                        list.innerHTML = '<span style="font-size:0.7rem;color:var(--text3);">Chưa có layer</span>';
+                    } else {
+                        list.innerHTML = this.items.map((item, idx) => `
+                            <div class="layer-item ${item.id===this.selectedId?'active':''}" data-id="${item.id}">
+                                <span>#${idx+1}</span>
+                                <span class="layer-name">${item.text.substring(0,20)}</span>
+                                <span class="layer-del" data-id="${item.id}">×</span>
+                            </div>`).join('');
+                        list.querySelectorAll('.layer-item').forEach(el => {
+                            el.addEventListener('click', e => {
+                                if (e.target.classList.contains('layer-del')) return;
+                                this.selectItem(el.dataset.id);
+                            });
+                        });
+                        list.querySelectorAll('.layer-del').forEach(el => {
+                            el.addEventListener('click', e => {
+                                e.stopPropagation();
+                                this.deleteItem(el.dataset.id);
+                            });
+                        });
+                    }
+                },
+                updateSidebarFromSelection() {
+                    const item = this.getSelectedItem();
+                    if (!item) return;
+                    document.getElementById('text-input').value = item.text;
+                    document.getElementById('font-size-slider').value = item.fontSize;
+                    document.getElementById('font-size-val').textContent = item.fontSize + 'px';
+                    document.getElementById('opacity-slider').value = Math.round(item.opacity * 100);
+                    document.getElementById('opacity-val').textContent = Math.round(item.opacity * 100) + '%';
+                    document.getElementById('weight-slider').value = item.fontWeight;
+                    document.getElementById('weight-val').textContent = item.fontWeight;
+                    document.getElementById('color-picker').value = item.color;
+                }
+            };
+
+            // ==================== UI & Khung hình ====================
+            const aspectBox = document.getElementById('aspect-box');
+            const aspectSelect = document.getElementById('aspect-ratio-select');
+            const mirrorToggle = document.getElementById('mirror-toggle');
+            const videoEl = document.getElementById('camera-preview');
+
+            function applyAspectRatio(ratio) {
+                aspectBox.className = 'aspect-ratio-box';
+                if (ratio !== 'full') aspectBox.classList.add('ratio-' + ratio);
+            }
+
+            function applyMirror(shouldMirror) {
+                if (shouldMirror) videoEl.classList.add('mirror');
+                else videoEl.classList.remove('mirror');
+            }
+
+            // ==================== INIT ====================
+            async function init() {
+                const theme = localStorage.getItem('devcam-theme') || 'dark';
+                document.body.setAttribute('data-theme', theme);
+                document.getElementById('theme-toggle').textContent = theme === 'dark' ? '🌙' : '☀️';
+
+                // Camera
+                try {
+                    await CameraManager.init();
+                } catch (e) {
+                    document.getElementById('loading-screen').innerHTML =
+                        '<div style="color:var(--accent3);padding:20px;">❌ Không thể truy cập camera</div>';
+                    setTimeout(() => document.getElementById('loading-screen').classList.add('hidden'), 2000);
+                    return;
+                }
+
+                // Khung hình & mirror mặc định
+                applyAspectRatio('full');
+                applyMirror(false);
+                aspectSelect.addEventListener('change', e => applyAspectRatio(e.target.value));
+                mirrorToggle.addEventListener('change', e => applyMirror(e.target.checked));
+
+                // Text overlay mặc định
+                TextOverlayManager.addItem('DevCam 🎬', 60, 40);
+
+                // UI events
+                document.getElementById('btn-record').onclick = () => {
+                    if (RecorderManager.isRecording && !RecorderManager.isPaused) RecorderManager.stopRecording();
+                    else if (RecorderManager.isRecording && RecorderManager.isPaused) RecorderManager
+                    .resumeRecording();
+                    else { const s = CameraManager.getStream(); if (s) RecorderManager.startRecording(s);
+                        else Toast.show('Chưa có camera', 'error'); }
+                };
+                document.getElementById('btn-pause').onclick = () => RecorderManager.pauseRecording();
+                document.getElementById('btn-resume').onclick = () => RecorderManager.resumeRecording();
+                document.getElementById('btn-stop').onclick = () => RecorderManager.stopRecording();
+                document.getElementById('cam-switch-btn').onclick = () => CameraManager.switchCamera();
+                document.getElementById('btn-view-video').onclick = () => {
+                    const blob = RecorderManager.getBlob();
+                    if (!blob) return Toast.show('Chưa có video', 'warning');
+                    const url = URL.createObjectURL(blob);
+                    const rv = document.getElementById('review-video');
+                    rv.src = url;
+                    document.getElementById('review-modal').style.display = 'flex';
+                };
+                document.getElementById('btn-close-review').onclick = () => {
+                    document.getElementById('review-modal').style.display = 'none';
+                    const rv = document.getElementById('review-video');
+                    if (rv.src.startsWith('blob:')) URL.revokeObjectURL(rv.src);
+                    rv.src = '';
+                };
+                document.getElementById('btn-download').onclick = () => {
+                    const blob = RecorderManager.getBlob();
+                    if (!blob) return Toast.show('Chưa có video', 'warning');
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `devcam_${Date.now()}.webm`;
+                    a.click();
+                    Toast.show('Đã tải video', 'success');
+                };
+                document.getElementById('btn-download-from-review').onclick = () => document.getElementById(
+                    'btn-download').click();
+                document.getElementById('btn-clear-video').onclick = () => {
+                    RecorderManager.clearRecording();
+                    document.getElementById('review-modal').style.display = 'none';
+                };
+                document.getElementById('theme-toggle').onclick = () => {
+                    const cur = document.body.getAttribute('data-theme');
+                    const next = cur === 'dark' ? 'light' : 'dark';
+                    document.body.setAttribute('data-theme', next);
+                    localStorage.setItem('devcam-theme', next);
+                    document.getElementById('theme-toggle').textContent = next === 'dark' ? '🌙' : '☀️';
+                };
+
+                // Text events
+                document.getElementById('btn-add-text').onclick = () => {
+                    const txt = document.getElementById('text-input').value || 'New';
+                    TextOverlayManager.addItem(txt, 100, 100);
+                };
+                document.getElementById('btn-duplicate-text').onclick = () => TextOverlayManager.duplicateItem();
+                document.getElementById('btn-delete-text').onclick = () => TextOverlayManager.deleteItem();
+                document.getElementById('text-input').oninput = e => TextOverlayManager.applyToSelected('text', e
+                    .target.value);
+                document.getElementById('font-size-slider').oninput = e => {
+                    const v = +e.target.value;
+                    document.getElementById('font-size-val').textContent = v + 'px';
+                    TextOverlayManager.applyToSelected('fontSize', v);
+                };
+                document.getElementById('opacity-slider').oninput = e => {
+                    const v = +e.target.value / 100;
+                    document.getElementById('opacity-val').textContent = Math.round(v * 100) + '%';
+                    TextOverlayManager.applyToSelected('opacity', v);
+                };
+                document.getElementById('weight-slider').oninput = e => {
+                    const v = +e.target.value;
+                    document.getElementById('weight-val').textContent = v;
+                    TextOverlayManager.applyToSelected('fontWeight', v);
+                };
+                document.getElementById('color-picker').oninput = e => TextOverlayManager.applyToSelected('color',
+                    e.target.value);
+                document.getElementById('font-select').onchange = e => TextOverlayManager.applyToSelected(
+                    'fontFamily', e.target.value);
+                document.getElementById('btn-align-left').onclick = () => TextOverlayManager.applyToSelected(
+                    'textAlign', 'left');
+                document.getElementById('btn-align-center').onclick = () => TextOverlayManager.applyToSelected(
+                    'textAlign', 'center');
+                document.getElementById('btn-align-right').onclick = () => TextOverlayManager.applyToSelected(
+                    'textAlign', 'right');
+                document.getElementById('btn-shadow').onclick = () => {
+                    const it = TextOverlayManager.getSelectedItem();
+                    if (it) { it.shadow = !it.shadow;
+                        TextOverlayManager.updateItem(it.id); }
+                };
+                document.getElementById('btn-glow').onclick = () => {
+                    const it = TextOverlayManager.getSelectedItem();
+                    if (it) { it.glow = !it.glow; if (it.glow) it.shadow = false;
+                        TextOverlayManager.updateItem(it.id); }
+                };
+                document.getElementById('btn-bg-blur').onclick = () => {
+                    const it = TextOverlayManager.getSelectedItem();
+                    if (it) { it.bgBlur = !it.bgBlur;
+                        TextOverlayManager.updateItem(it.id); }
+                };
+                document.getElementById('overlay-container').addEventListener('click', e => {
+                    if (e.target === e.currentTarget) {
+                        TextOverlayManager.selectedId = null;
+                        document.querySelectorAll('.text-overlay-item.selected').forEach(el => el
+                            .classList.remove('selected'));
+                        TextOverlayManager.updateLayerList();
+                    }
+                });
+
+                // Cập nhật dashboard
+                setInterval(() => {
+                    const sec = RecorderManager.getElapsedSeconds();
+                    const time = `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`;
+                    document.getElementById('live-time').textContent = time;
+                    document.getElementById('rec-time-display').textContent = time;
+                    document.getElementById('live-fps').textContent = RecorderManager.currentFps;
+                    const kb = RecorderManager.totalSize / 1024;
+                    document.getElementById('live-size').textContent = kb > 1024 ? (kb / 1024).toFixed(1) +
+                        ' MB' : kb.toFixed(1) + ' KB';
+                }, 250);
+
+                // Kết thúc loading
+                document.getElementById('loading-screen').classList.add('hidden');
+                document.getElementById('app-container').style.opacity = '1';
+                MiniConsole.log('Sẵn sàng!');
+            }
+
+            init().catch(console.error);
+        })();
+    </script>
 </body>
 </html>
